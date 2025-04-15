@@ -6,3 +6,4 @@ scipy
 matplotlib
 seaborn
 streamlit
+scikit-posthocs
