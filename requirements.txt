@@ -7,3 +7,6 @@ matplotlib
 seaborn
 streamlit
 scikit-posthocs
+python-pptx
+Pillow
+scipy
