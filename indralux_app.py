@@ -5,10 +5,11 @@ from processor import process_with_breaks
 from metrics import add_morphological_metrics, add_extended_metrics, add_ve_snr
 from overlay import draw_colored_overlay_with_cv2
 from plotting import plot_spatial_disruption_map, plot_metric_trends_manual
-from statistics import run_statistical_tests
+from indralux_stats import run_statistical_tests 
 import cv2
 import tempfile
 import os
+
 
 st.set_page_config(
     page_title="Indralux",
