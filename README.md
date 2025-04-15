@@ -11,8 +11,7 @@
 <p align="center">
   <a href="https://indralux.streamlit.app/">Live App</a> •
   <a href="https://github.com/yourusername/Indralux">GitHub Repo</a> •
-  <a href="#metrics">Metrics</a> [![Metrics Table](https://img.shields.io/badge/view-metrics_table-blue)](docs/metrics_table.md)
-•
+  <a href="docs/metrics_table.md">📖 Full Metrics Table</a> •
   <a href="#how-it-works">How It Works</a>
 </p>
 
