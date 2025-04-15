@@ -55,7 +55,7 @@ if st.checkbox("📂 Upload .pptx for Batch Analysis"):
                 img_path = os.path.join(extract_dir, selected)
                 st.image(img_path, caption=f"Preview: {selected}", use_container_width=True)
 
-                n_cols = st.number_input(f"How many panels in {selected}?", min_value=1, max_value=12, value=4, key="ncol_" + selected)
+                n_cols = st.number_input(f"How many columns in {selected}?", min_value=1, max_value=12, value=4, key="ncol_" + selected)
                 labels_str = st.text_input("Column labels (comma-separated)", value="Control,5,10,15", key="lab_" + selected)
                 col_labels = [lbl.strip() for lbl in labels_str.split(",")]
                 if len(col_labels) != n_cols:
@@ -90,7 +90,8 @@ if st.checkbox("📂 Upload .pptx for Batch Analysis"):
                         # Optional trend plot
                         st.markdown("#### Metric Trends (per slide)")
                         metric_cols = [col for col in slide_df.columns if slide_df[col].dtype in ['float64', 'int64'] and col not in ['Cell_ID']]
-                        chosen_metrics = st.multiselect("Select metrics to plot:", metric_cols, default=["DAPI_Intensity", "VE_Ratio", "Disruption_Index"], key="plot_" + selected)
+                        safe_defaults = [m for m in ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"] if m in metric_cols]
+                        chosen_metrics = st.multiselect("Select metrics to plot:", metric_cols, default=safe_defaults, key="plot_" + selected)
 
                         if chosen_metrics:
                             fig_path = os.path.join(tempfile.gettempdir(), f"trend_{selected}.png")
@@ -99,7 +100,8 @@ if st.checkbox("📂 Upload .pptx for Batch Analysis"):
 
                         # Optional stats
                         st.markdown("#### Statistical Analysis (per slide)")
-                        stat_cols = st.multiselect("Select metrics to test:", metric_cols, default=["VE_Ratio", "Disruption_Index"], key="stats_" + selected)
+                        safe_stat_defaults = [m for m in ["VE_Ratio", "Disruption_Index"] if m in metric_cols]
+                        stat_cols = st.multiselect("Select metrics to test:", metric_cols, default=safe_stat_defaults, key="stats_" + selected)
 
                         if stat_cols:
                             stats_df = run_statistical_tests(slide_df[["Column_Label"] + stat_cols])
