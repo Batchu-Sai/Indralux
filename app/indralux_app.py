@@ -2,17 +2,25 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import tempfile, os, cv2
+import sys
 
-from processor import process_with_breaks
-from metrics import add_morphological_metrics, add_extended_metrics, add_ve_snr
-from overlay import draw_colored_overlay_with_cv2
-from plotting import plot_spatial_disruption_map, plot_metric_trends_manual
-from indralux_stats import run_statistical_tests
+# Enable parent directory access
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+# Import core modules
+from core.processor import process_with_breaks
+from core.metrics import add_morphological_metrics, add_extended_metrics, add_ve_snr
+from core.overlay import draw_colored_overlay_with_cv2
+from core.plotting import plot_spatial_disruption_map, plot_metric_trends_manual
+from core.indralux_stats import run_statistical_tests
+
+# Import pptx utilities
 from utils.pptx_extract import extract_images_from_pptx
 from utils.column_split_improved import split_columns_improved
 
-# Set page config
+# ─────────────────────────────────────────────
+# PAGE CONFIG & HEADER
+# ─────────────────────────────────────────────
 st.set_page_config(
     page_title="Indralux",
     page_icon="assets/favicon_32.png",
@@ -27,7 +35,7 @@ st.markdown(
 st.markdown("---")
 
 # ─────────────────────────────────────────────
-# ✅ PPTX Upload and Split
+# 🆕 PPTX UPLOAD FOR BATCH MODE
 # ─────────────────────────────────────────────
 if st.checkbox("Upload PowerPoint (.pptx) for Batch Ingest"):
     pptx_file = st.file_uploader("Upload your .pptx file", type=["pptx"])
@@ -51,7 +59,7 @@ if st.checkbox("Upload PowerPoint (.pptx) for Batch Ingest"):
 st.markdown("---")
 
 # ─────────────────────────────────────────────
-# 📷 Image Upload for Analysis
+# 📷 SINGLE IMAGE ANALYSIS
 # ─────────────────────────────────────────────
 uploaded_file = st.file_uploader("Upload a fluorescent microscopy image", type=["png", "jpg", "jpeg"])
 
@@ -78,7 +86,7 @@ if uploaded_file:
             st.stop()
 
     # ─────────────────────────────────────────────
-    # 🔲 Overlay Display
+    # 🔲 OVERLAY
     # ─────────────────────────────────────────────
     if st.checkbox("Show overlay with cell labels"):
         overlay = draw_colored_overlay_with_cv2(img_rgb, labels, df)
@@ -87,7 +95,7 @@ if uploaded_file:
         st.image(overlay_path, caption="Overlay", use_container_width=True)
 
     # ─────────────────────────────────────────────
-    # 📈 Trend Plotting
+    # 📈 METRIC TRENDS
     # ─────────────────────────────────────────────
     if st.checkbox("Show trend plots"):
         available_metrics = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
@@ -103,7 +111,7 @@ if uploaded_file:
             st.image(fig_path, caption="Metric Trends", use_container_width=True)
 
     # ─────────────────────────────────────────────
-    # 📊 Run Statistics
+    # 📊 STATISTICAL TESTING
     # ─────────────────────────────────────────────
     if st.checkbox("Run statistics"):
         numeric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
@@ -120,7 +128,7 @@ if uploaded_file:
             st.download_button("Download Statistics CSV", open(kruskal_path, "rb"), "kruskal_results.csv")
 
     # ─────────────────────────────────────────────
-    # 💾 Export Full Data
+    # 💾 EXPORT METRICS
     # ─────────────────────────────────────────────
     csv_path = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
     df.to_csv(csv_path, index=False)
