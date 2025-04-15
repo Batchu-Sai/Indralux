@@ -14,7 +14,7 @@ from core.plotting import plot_spatial_disruption_map, plot_metric_trends_manual
 from core.indralux_stats import run_statistical_tests
 
 # Utilities
-from utils.pptx_extract import extract_images_from_pptx
+from utils.pptx_extract import extract_clean_images_from_pptx
 from utils.column_split_improved import split_columns_improved
 
 # ——— PAGE HEADER ———
