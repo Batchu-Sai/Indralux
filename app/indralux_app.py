@@ -39,24 +39,42 @@ st.markdown("---")
 # ─────────────────────────────────────────────
 if st.checkbox("Upload PowerPoint (.pptx) for Batch Ingest"):
     pptx_file = st.file_uploader("Upload your .pptx file", type=["pptx"])
+
     if pptx_file:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as tmp_pptx:
             tmp_pptx.write(pptx_file.read())
             pptx_path = tmp_pptx.name
+            st.success("✅ PPTX uploaded!")
 
         extract_dir = os.path.join(tempfile.gettempdir(), "pptx_images")
         split_dir = os.path.join(tempfile.gettempdir(), "pptx_split")
 
+        st.info("Extracting images from slides...")
         extract_images_from_pptx(pptx_path, extract_dir)
 
-        for file in sorted(os.listdir(extract_dir)):
+        extracted = sorted(os.listdir(extract_dir))
+        if not extracted:
+            st.error("❌ No slides were extracted. Check if the PowerPoint contains image-based slides.")
+        else:
+            st.success(f"✅ {len(extracted)} slides extracted.")
+            st.write("Extracted slide images:")
+            st.image([os.path.join(extract_dir, f) for f in extracted[:5]], caption=extracted[:5], width=150)
+
+        st.info("Splitting slide images into columns...")
+        for file in extracted:
             img_path = os.path.join(extract_dir, file)
-            split_columns_improved(img_path, split_dir)
+            try:
+                split_columns_improved(img_path, split_dir)
+            except Exception as e:
+                st.warning(f"⚠️ Failed to split {file}: {e}")
 
-        st.success(f"✅ Extracted and split images into: {split_dir}")
-        st.write(os.listdir(split_dir)[:10])
+        split_files = os.listdir(split_dir)
+        if not split_files:
+            st.error("❌ No column images were generated from slides.")
+        else:
+            st.success(f"✅ {len(split_files)} column images created.")
+            st.image([os.path.join(split_dir, f) for f in split_files[:5]], caption=split_files[:5], width=120)
 
-st.markdown("---")
 
 # ─────────────────────────────────────────────
 # 📷 SINGLE IMAGE ANALYSIS
