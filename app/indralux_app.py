@@ -20,7 +20,7 @@ from utils.column_split_uniform import split_into_n_columns
 # ─────────── PAGE HEADER ───────────
 st.set_page_config(page_title="Indralux", page_icon="assets/favicon_32.png", layout="wide")
 st.image("assets/indralux_final_logo.png", width=300)
-st.markdown("<h2 style='text-align: center;'>Quantifying endothelial disruption — pixel by pixel</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center;'></h2>", unsafe_allow_html=True)
 st.markdown("---")
 
 # ─────────── BATCH PPT ANALYSIS ───────────
