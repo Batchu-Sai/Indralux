@@ -1,64 +1,68 @@
-
 import streamlit as st
-import cv2
-import numpy as np
 import pandas as pd
-import tempfile
-import os
 import matplotlib.pyplot as plt
 from processor import process_with_breaks
 from metrics import add_morphological_metrics, add_extended_metrics, add_ve_snr
 from overlay import draw_colored_overlay_with_cv2
-from plotting import plot_spatial_disruption_map
+from plotting import plot_spatial_disruption_map, plot_metric_trends_manual
+from statistics import run_statistical_tests
+import cv2
+import tempfile
+import os
 
-st.set_page_config(layout="wide")
-st.title("Indralux: Endothelial Barrier Quantification")
+st.set_page_config(
+    page_title="Indralux",
+    page_icon="assets/favicon_32.png",
+    layout="centered"
+)
 
-st.sidebar.header("Step 1: Upload Image")
-uploaded_file = st.sidebar.file_uploader("Choose an image file", type=["jpg", "jpeg", "png", "tif", "tiff"])
+st.image("assets/indralux_final_logo.png", width=300)
+st.markdown(
+    "<h2 style='text-align: center; margin-top: -10px;'>Quantifying endothelial disruption — pixel by pixel</h2>",
+    unsafe_allow_html=True
+)
+st.markdown("---")
 
-st.sidebar.header("Step 2: Settings")
-threshold_method = st.sidebar.selectbox("Thresholding Method", ["otsu", "local", "percentile"])
-n_columns = st.sidebar.number_input("Number of Columns", min_value=1, max_value=20, value=4)
-column_labels = st.sidebar.text_input("Column Labels (comma-separated)", "Control,5,10,15")
+uploaded_file = st.file_uploader("Upload a fluorescent microscopy image", type=["png", "jpg", "jpeg"])
 
-if uploaded_file is not None:
-    st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+if uploaded_file:
+    column_labels = st.text_input("Enter column labels separated by commas (e.g., Control,5,15,30)", "Control,5,15,30")
+    column_labels = [label.strip() for label in column_labels.split(",")]
 
-    if st.sidebar.button("Run Indralux"):
-        with st.spinner("Processing image..."):
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
-                tmp.write(uploaded_file.read())
-                tmp_path = tmp.name
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        tmp.write(uploaded_file.read())
+        img_path = tmp.name
 
-            labels = [label.strip() for label in column_labels.split(",")]
-            df, seg_labels, rgb_img = process_with_breaks(tmp_path, n_columns=n_columns, column_labels=labels)
-            morph_df = add_morphological_metrics(df, seg_labels)
-            df = pd.merge(df, morph_df, on="Cell_ID")
-            ext_df = add_extended_metrics(df, seg_labels)
-            df = pd.merge(df, ext_df, on="Cell_ID")
+    st.image(img_path, caption="Uploaded Image", use_container_width=True)
 
-            ve_img = cv2.cvtColor(cv2.imread(tmp_path), cv2.COLOR_BGR2RGB)[:, :, 1]
-            df = add_ve_snr(df, seg_labels, ve_img)
+    with st.spinner("Processing image..."):
+        df, labels, img_rgb = process_with_breaks(img_path, n_columns=len(column_labels), column_labels=column_labels)
+        df = pd.merge(df, add_morphological_metrics(df, labels), on="Cell_ID")
+        df = pd.merge(df, add_extended_metrics(df, labels), on="Cell_ID")
+        df = add_ve_snr(df, labels, img_rgb[:, :, 1])
 
-            overlay = draw_colored_overlay_with_cv2(rgb_img, seg_labels, df)
-            overlay_path = tmp_path.replace(".png", "_overlay.png")
-            cv2.imwrite(overlay_path, cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR))
-            df_path = tmp_path.replace(".png", "_metrics.csv")
-            df.to_csv(df_path, index=False)
-            map_path = tmp_path.replace(".png", "_disruption_map.png")
-            plot_spatial_disruption_map(df, map_path)
+    st.success("Segmentation and analysis complete.")
+    st.dataframe(df.head())
 
-            st.subheader("Results Overview")
-            st.dataframe(df.head())
+    if st.checkbox("Show overlay with cell labels"):
+        overlay = draw_colored_overlay_with_cv2(img_rgb, labels, df)
+        overlay_path = os.path.join(tempfile.gettempdir(), "overlay.png")
+        cv2.imwrite(overlay_path, cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR))
+        st.image(overlay_path, caption="Overlay", use_container_width=True)
 
-            st.subheader("Overlay Image")
-            st.image(overlay_path, use_column_width=True)
+    if st.checkbox("Show trend plots"):
+        fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
+        plot_metric_trends_manual(df, ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"], fig_path)
+        st.image(fig_path, caption="Metric Trends", use_container_width=True)
 
-            st.subheader("Disruption Index Map")
-            st.image(map_path, use_column_width=True)
+    if st.checkbox("Run statistics"):
+        result_df = run_statistical_tests(df)
+        st.dataframe(result_df)
 
-            st.download_button("Download Metrics CSV", data=open(df_path, "rb").read(), file_name="indralux_metrics.csv")
-            st.download_button("Download Overlay Image", data=open(overlay_path, "rb").read(), file_name="overlay_labeled.png")
-            st.download_button("Download Disruption Map", data=open(map_path, "rb").read(), file_name="disruption_map.png")
+        kruskal_path = os.path.join(tempfile.gettempdir(), "kruskal_results.csv")
+        result_df.to_csv(kruskal_path, index=False)
+        st.download_button("Download Statistics CSV", open(kruskal_path, "rb"), "kruskal_results.csv")
 
+    csv_path = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
+    df.to_csv(csv_path, index=False)
+    st.download_button("Download Full Metrics CSV", open(csv_path, "rb"), "indralux_metrics.csv")
