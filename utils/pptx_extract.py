@@ -4,6 +4,8 @@ import os
 def extract_images_from_pptx(pptx_path, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     prs = Presentation(pptx_path)
+    saved_files = []
+
     for slide_idx, slide in enumerate(prs.slides, start=1):
         for shape_idx, shape in enumerate(slide.shapes, start=1):
             if shape.shape_type == 13 and hasattr(shape, "image"):
@@ -13,3 +15,7 @@ def extract_images_from_pptx(pptx_path, output_dir):
                 path = os.path.join(output_dir, name)
                 with open(path, "wb") as f:
                     f.write(image.blob)
+                saved_files.append(name)
+
+    return saved_files  # ✅ This fixes the error!
+
