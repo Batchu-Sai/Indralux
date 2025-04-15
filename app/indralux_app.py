@@ -48,6 +48,8 @@ if st.checkbox("Upload PowerPoint (.pptx) for Batch Ingest"):
 
         extract_dir = os.path.join(tempfile.gettempdir(), "pptx_images")
         split_dir = os.path.join(tempfile.gettempdir(), "pptx_split")
+        os.makedirs(extract_dir, exist_ok=True)
+        os.makedirs(split_dir, exist_ok=True)
 
         st.info("Extracting images from slides...")
         extract_images_from_pptx(pptx_path, extract_dir)
@@ -57,8 +59,13 @@ if st.checkbox("Upload PowerPoint (.pptx) for Batch Ingest"):
             st.error("❌ No slides were extracted. Check if the PowerPoint contains image-based slides.")
         else:
             st.success(f"✅ {len(extracted)} slides extracted.")
-            st.write("Extracted slide images:")
-            st.image([os.path.join(extract_dir, f) for f in extracted[:5]], caption=extracted[:5], width=150)
+            st.markdown("### 🖼 Extracted Slide Images")
+            for i in range(0, len(extracted), 4):
+                cols = st.columns(4)
+                for j, col in enumerate(cols):
+                    if i + j < len(extracted):
+                        path = os.path.join(extract_dir, extracted[i + j])
+                        col.image(path, caption=extracted[i + j], use_column_width=True)
 
         st.info("Splitting slide images into columns...")
         for file in extracted:
@@ -68,13 +75,18 @@ if st.checkbox("Upload PowerPoint (.pptx) for Batch Ingest"):
             except Exception as e:
                 st.warning(f"⚠️ Failed to split {file}: {e}")
 
-        split_files = os.listdir(split_dir)
+        split_files = sorted(os.listdir(split_dir))
         if not split_files:
             st.error("❌ No column images were generated from slides.")
         else:
             st.success(f"✅ {len(split_files)} column images created.")
-            st.image([os.path.join(split_dir, f) for f in split_files[:5]], caption=split_files[:5], width=120)
-
+            st.markdown("### 🧬 Split Column Images")
+            for i in range(0, len(split_files), 5):
+                cols = st.columns(5)
+                for j, col in enumerate(cols):
+                    if i + j < len(split_files):
+                        path = os.path.join(split_dir, split_files[i + j])
+                        col.image(path, caption=split_files[i + j], use_column_width=True)
 
 # ─────────────────────────────────────────────
 # 📷 SINGLE IMAGE ANALYSIS
@@ -151,6 +163,5 @@ if uploaded_file:
     csv_path = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
     df.to_csv(csv_path, index=False)
     st.download_button("Download Full Metrics CSV", open(csv_path, "rb"), "indralux_metrics.csv")
-
 
 
