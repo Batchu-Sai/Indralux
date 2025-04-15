@@ -23,7 +23,7 @@ st.image("assets/indralux_final_logo.png", width=300)
 st.markdown("<h2 style='text-align: center;'>Quantifying endothelial disruption — pixel by pixel</h2>", unsafe_allow_html=True)
 st.markdown("---")
 
-# ——— BATCH MODE (PPTX) ———
+# ————— BATCH MODE (PPTX) —————
 if st.checkbox("Upload PowerPoint (.pptx) for Batch Ingest"):
     pptx_file = st.file_uploader("Upload your .pptx file", type=["pptx"])
 
@@ -38,44 +38,48 @@ if st.checkbox("Upload PowerPoint (.pptx) for Batch Ingest"):
         os.makedirs(split_dir, exist_ok=True)
 
         st.info("Extracting images from slides...")
-        extracted = extract_images_from_pptx(pptx_path, extract_dir) or []
+        extracted = extract_images_from_pptx(pptx_path, extract_dir)
+
         if not extracted:
-            st.error("No slide images extracted.")
+            st.error("❌ No images were extracted from the PowerPoint.")
+            st.stop()
         else:
-            st.success(f"{len(extracted)} slides extracted.")
+            st.success(f"✅ {len(extracted)} slides extracted.")
 
-            with st.expander("🖼 Preview slide images"):
-                for i in range(0, len(extracted), 4):
-                    cols = st.columns(4)
-                    for j, col in enumerate(cols):
-                        if i + j < len(extracted):
-                            path = os.path.join(extract_dir, extracted[i + j])
-                            col.image(path, caption=extracted[i + j], use_container_width=True)
+        with st.expander("🖼 Preview extracted slide images"):
+            for i in range(0, len(extracted), 4):
+                cols = st.columns(4)
+                for j, col in enumerate(cols):
+                    if i + j < len(extracted):
+                        path = os.path.join(extract_dir, extracted[i + j])
+                        col.image(path, caption=extracted[i + j], use_container_width=True)
 
-            selected_slide_files = st.multiselect("Select slide images to analyze:", extracted, default=extracted)
+        selected_slide_files = st.multiselect("Select slide images to analyze:", extracted, default=extracted)
 
-            st.info("Splitting selected slide images into columns...")
+        if selected_slide_files:
+            st.info("🔍 Splitting selected slide images into columns...")
+            split_count = 0
             for file in selected_slide_files:
                 img_path = os.path.join(extract_dir, file)
                 try:
                     split_columns_improved(img_path, split_dir)
                 except Exception as e:
-                    st.warning(f"Failed to split {file}: {e}")
+                    st.warning(f"⚠️ Could not split {file}: {e}")
 
-            split_files = sorted(os.listdir(split_dir))
-            split_files = [f for f in split_files if any(slide in f for slide in selected_slide_files)]
+            split_files = sorted(f for f in os.listdir(split_dir) if any(slide in f for slide in selected_slide_files))
 
-            if split_files:
-                st.success(f"{len(split_files)} column images created.")
-                with st.expander("🧪 Column previews"):
+            if not split_files:
+                st.error("❌ No column images were generated from slides.")
+            else:
+                st.success(f"✅ {len(split_files)} column images created.")
+
+                with st.expander("🧬 Preview Column Images"):
                     for i in range(0, len(split_files), 5):
                         cols = st.columns(5)
                         for j, col in enumerate(cols):
                             if i + j < len(split_files):
                                 path = os.path.join(split_dir, split_files[i + j])
                                 col.image(path, caption=split_files[i + j], use_container_width=True)
-            else:
-                st.error("No column images created.")
 
 # ——— SINGLE IMAGE ANALYSIS ———
 st.markdown("## 📸 Upload Single Microscopy Image")
