@@ -61,9 +61,8 @@ if st.checkbox("📂 Upload .pptx for Batch Analysis"):
                     st.session_state[run_key] = False
 
                 n_cols = st.number_input("How many panels?", min_value=1, max_value=12, value=4, key=f"ncols_{selected}")
-                col_labels_input = st.text_input("Column labels (comma-separated):", value=st.session_state[label_key], key=label_key)
+                col_labels_input = st.text_input("Column labels (comma-separated):", key=label_key)
                 col_labels = [l.strip() for l in col_labels_input.split(",")]
-                st.session_state[label_key] = col_labels_input
 
                 if st.button("▶️ Run analysis", key=f"runbtn_{selected}"):
                     st.session_state[run_key] = True
