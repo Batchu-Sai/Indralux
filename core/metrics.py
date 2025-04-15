@@ -1,6 +1,7 @@
 
 import pandas as pd
 import numpy as np
+import cv2
 from skimage.measure import regionprops
 from skimage.morphology import convex_hull_image
 
@@ -30,21 +31,27 @@ def add_extended_metrics(df, labels):
     )
     return df
 
-def add_ve_snr(df, labels, ve_channel):
-    from skimage.measure import regionprops
+import numpy as np
+import cv2
 
-    signal_means = []
-    bg_mean = np.mean(ve_channel[ve_channel < np.percentile(ve_channel, 10)])
-    bg_std = np.std(ve_channel[ve_channel < np.percentile(ve_channel, 10)])
+def add_ve_snr(df, labels, ve_channel, pad=10):
+    snr_list = []
 
-    props = regionprops(labels, intensity_image=ve_channel)
-    for r in props:
-        if r.label in df['Cell_ID'].values:
-            signal_mean = r.mean_intensity
-            snr = (signal_mean - bg_mean) / (bg_std + 1e-6)
-            signal_means.append({
-                "Cell_ID": r.label,
-                "VE_SNR": snr
-            })
-    snr_df = pd.DataFrame(signal_means)
-    return df.merge(snr_df, on="Cell_ID", how="left")
+    for region in df.itertuples():
+        mask = labels == region.Cell_ID
+        dilated = cv2.dilate(mask.astype(np.uint8), np.ones((pad, pad), dtype=np.uint8), iterations=1)
+        background = (dilated > 0) & (~mask)
+
+        bg_vals = ve_channel[background]
+        if len(bg_vals) == 0 or np.std(bg_vals) == 0:
+            snr = None
+            print(f"⚠️ Cell {region.Cell_ID}: Cannot compute VE_SNR (no valid background or zero variance).")
+        else:
+            periphery = mask ^ cv2.erode(mask.astype(np.uint8), None)
+            signal = ve_channel[periphery]
+            snr = (np.mean(signal) - np.mean(bg_vals)) / (np.std(bg_vals) + 1e-6)
+
+        snr_list.append(snr)
+
+    df["VE_SNR"] = snr_list
+    return df
