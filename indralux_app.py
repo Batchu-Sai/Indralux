@@ -54,35 +54,33 @@ if uploaded_file:
         available_metrics = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
         selected_metrics = st.multiselect("Select metrics to plot:", options=available_metrics, default=["DAPI_Intensity", "VE_Ratio", "Disruption_Index"])
 
-    if "Column_Label" not in df.columns:
-        st.error("⚠️ 'Column_Label' not found. Ensure labels are correctly assigned.")
-        st.write("Available columns:", df.columns.tolist())
-    elif not selected_metrics:
-        st.warning("Please select at least one metric.")
-    else:
-        fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
-        plot_metric_trends_manual(df, selected_metrics, fig_path)
-        st.image(fig_path, caption="Metric Trends", use_container_width=True)
+        if "Column_Label" not in df.columns:
+            st.error("⚠️ 'Column_Label' not found. Ensure labels are correctly assigned.")
+            st.write("Available columns:", df.columns.tolist())
+        elif not selected_metrics:
+            st.warning("Please select at least one metric.")
+        else:
+            fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
+            plot_metric_trends_manual(df, selected_metrics, fig_path)
+            st.image(fig_path, caption="Metric Trends", use_container_width=True)
 
     if st.checkbox("Run statistics"):
         numeric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
         stat_metrics = st.multiselect("Select metrics to test:", options=numeric_cols, default=["VE_Ratio", "Disruption_Index"])
-    
-    if not stat_metrics:
-        st.warning("Please select at least one metric to analyze.")
-    else:
-        result_df = run_statistical_tests(df[["Column_Label"] + stat_metrics])
-        st.dataframe(result_df)
-        kruskal_path = os.path.join(tempfile.gettempdir(), "kruskal_results.csv")
-        result_df.to_csv(kruskal_path, index=False)
-        st.download_button("Download Statistics CSV", open(kruskal_path, "rb"), "kruskal_results.csv")
-        st.dataframe(result_df)
 
-        kruskal_path = os.path.join(tempfile.gettempdir(), "kruskal_results.csv")
-        result_df.to_csv(kruskal_path, index=False)
-        st.download_button("Download Statistics CSV", open(kruskal_path, "rb"), "kruskal_results.csv")
+        if not stat_metrics:
+            st.warning("Please select at least one metric to analyze.")
+        else:
+            result_df = run_statistical_tests(df[["Column_Label"] + stat_metrics])
+            st.dataframe(result_df)
 
+            kruskal_path = os.path.join(tempfile.gettempdir(), "kruskal_results.csv")
+            result_df.to_csv(kruskal_path, index=False)
+            st.download_button("Download Statistics CSV", open(kruskal_path, "rb"), "kruskal_results.csv")
+
+    # Always offer full download
     csv_path = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
     df.to_csv(csv_path, index=False)
     st.download_button("Download Full Metrics CSV", open(csv_path, "rb"), "indralux_metrics.csv")
+
 
