@@ -78,8 +78,12 @@ if st.checkbox("📂 Upload .pptx for Batch Analysis"):
                         try:
                             label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
                             df, labels, img_rgb = process_with_breaks(col_path, n_columns=1, column_labels=[label])
-                            df = pd.merge(df, add_morphological_metrics(df, labels), on="Cell_ID", how="left")
-                            df = pd.merge(df, add_extended_metrics(df, labels), on="Cell_ID", how="left")
+                            morph = add_morphological_metrics(df, labels)
+                            morph = morph.drop(columns=[col for col in ['Column_Label', 'Slide_Image', 'Panel_Label'] if col in morph.columns])
+                            df = pd.merge(df, morph, on="Cell_ID", how="left")
+                            ext = add_extended_metrics(df, labels)
+                            ext = ext.drop(columns=[col for col in ['Column_Label', 'Slide_Image', 'Panel_Label'] if col in ext.columns])
+                            df = pd.merge(df, ext, on="Cell_ID", how="left")
                             df = add_ve_snr(df, labels, img_rgb[:, :, 1])
                             df["Slide_Image"] = selected
                             df["Panel_Label"] = label
