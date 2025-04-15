@@ -23,63 +23,66 @@ st.image("assets/indralux_final_logo.png", width=300)
 st.markdown("<h2 style='text-align: center;'>Quantifying endothelial disruption — pixel by pixel</h2>", unsafe_allow_html=True)
 st.markdown("---")
 
-# ————— BATCH MODE (PPTX) —————
-if st.checkbox("Upload PowerPoint (.pptx) for Batch Ingest"):
+from utils.pptx_extract import extract_clean_images_from_pptx
+from utils.column_split_uniform import split_into_n_columns
+
+# ───────────── BATCH UPLOAD FROM PPTX ─────────────
+if st.checkbox("📂 Upload .pptx for Batch Analysis"):
     pptx_file = st.file_uploader("Upload your .pptx file", type=["pptx"])
-
+    
     if pptx_file:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as tmp_pptx:
-            tmp_pptx.write(pptx_file.read())
-            pptx_path = tmp_pptx.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as tmp:
+            tmp.write(pptx_file.read())
+            pptx_path = tmp.name
 
-        extract_dir = os.path.join(tempfile.gettempdir(), "pptx_images")
-        split_dir = os.path.join(tempfile.gettempdir(), "pptx_split")
+        extract_dir = os.path.join(tempfile.gettempdir(), "pptx_clean_images")
         os.makedirs(extract_dir, exist_ok=True)
-        os.makedirs(split_dir, exist_ok=True)
+        st.info("Extracting clean images from slides...")
+        clean_imgs = extract_clean_images_from_pptx(pptx_path, extract_dir)
 
-        st.info("Extracting images from slides...")
-        extracted = extract_images_from_pptx(pptx_path, extract_dir)
-
-        if not extracted:
-            st.error("❌ No images were extracted from the PowerPoint.")
-            st.stop()
+        if not clean_imgs:
+            st.error("❌ No clean image objects found in .pptx.")
         else:
-            st.success(f"✅ {len(extracted)} slides extracted.")
+            st.success(f"✅ Found {len(clean_imgs)} image(s).")
+            selected_imgs = st.multiselect("Select images to analyze:", clean_imgs, default=clean_imgs)
 
-        with st.expander("🖼 Preview extracted slide images"):
-            for i in range(0, len(extracted), 4):
-                cols = st.columns(4)
-                for j, col in enumerate(cols):
-                    if i + j < len(extracted):
-                        path = os.path.join(extract_dir, extracted[i + j])
-                        col.image(path, caption=extracted[i + j], use_container_width=True)
+            # Process each image
+            all_metrics = []
+            for img_name in selected_imgs:
+                img_path = os.path.join(extract_dir, img_name)
+                st.image(img_path, caption=f"Preview: {img_name}", use_container_width=True)
 
-        selected_slide_files = st.multiselect("Select slide images to analyze:", extracted, default=extracted)
+                # Ask user how many columns
+                n_cols = st.number_input(f"How many panels in {img_name}?", min_value=1, max_value=12, value=4, key=img_name)
+                col_labels_input = st.text_input(f"Labels for {img_name} (comma-separated)", value="Control,5,10,15", key="labels_"+img_name)
+                col_labels = [lbl.strip() for lbl in col_labels_input.split(",")]
+                if len(col_labels) != n_cols:
+                    st.warning("⚠️ Label count doesn't match column count.")
 
-        if selected_slide_files:
-            st.info("🔍 Splitting selected slide images into columns...")
-            split_count = 0
-            for file in selected_slide_files:
-                img_path = os.path.join(extract_dir, file)
-                try:
-                    split_columns_improved(img_path, split_dir)
-                except Exception as e:
-                    st.warning(f"⚠️ Could not split {file}: {e}")
+                split_dir = os.path.join(tempfile.gettempdir(), "split_columns")
+                os.makedirs(split_dir, exist_ok=True)
+                col_paths = split_into_n_columns(img_path, split_dir, n_cols)
 
-            split_files = sorted(f for f in os.listdir(split_dir) if any(slide in f for slide in selected_slide_files))
+                for idx, col_path in enumerate(col_paths):
+                    try:
+                        df, labels, img_rgb = process_with_breaks(col_path, n_columns=1, column_labels=[col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"])
+                        df = pd.merge(df, add_morphological_metrics(df, labels), on="Cell_ID", how="left")
+                        df = pd.merge(df, add_extended_metrics(df, labels), on="Cell_ID", how="left")
+                        df = add_ve_snr(df, labels, img_rgb[:, :, 1])
+                        df["Slide_Image"] = img_name
+                        all_metrics.append(df)
+                    except Exception as e:
+                        st.error(f"❌ Failed to process {col_path}: {e}")
 
-            if not split_files:
-                st.error("❌ No column images were generated from slides.")
-            else:
-                st.success(f"✅ {len(split_files)} column images created.")
+            if all_metrics:
+                final_df = pd.concat(all_metrics, ignore_index=True)
+                st.success("✅ Batch processing complete.")
+                st.dataframe(final_df.head())
 
-                with st.expander("🧬 Preview Column Images"):
-                    for i in range(0, len(split_files), 5):
-                        cols = st.columns(5)
-                        for j, col in enumerate(cols):
-                            if i + j < len(split_files):
-                                path = os.path.join(split_dir, split_files[i + j])
-                                col.image(path, caption=split_files[i + j], use_container_width=True)
+                out_csv = os.path.join(tempfile.gettempdir(), "batch_metrics_output.csv")
+                final_df.to_csv(out_csv, index=False)
+                st.download_button("📥 Download Batch Metrics CSV", open(out_csv, "rb"), "indralux_batch_metrics.csv")
+
 
 # ——— SINGLE IMAGE ANALYSIS ———
 st.markdown("## 📸 Upload Single Microscopy Image")
