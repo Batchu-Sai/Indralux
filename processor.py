@@ -5,10 +5,7 @@ from skimage import filters, feature, segmentation, measure, morphology
 from scipy import ndimage as ndi
 import pandas as pd
 
-# Optimized processor and feature extractor
-
 def process_with_breaks(img_path, n_columns=1, column_labels=None):
-    img_name = os.path.splitext(os.path.basename(img_path))[0]
     img = cv2.imread(img_path)
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
@@ -33,44 +30,38 @@ def process_with_breaks(img_path, n_columns=1, column_labels=None):
     segmentation_labels = segmentation.watershed(elevation_map, markers, mask=borders)
 
     results = []
-
     for region in measure.regionprops(segmentation_labels, intensity_image=ve_cadherin):
         if region.area < 100:
             continue
-
         full_mask = segmentation_labels == region.label
         interior = morphology.binary_erosion(full_mask, morphology.disk(3))
         periphery = full_mask ^ interior
 
-        ve_intensity = np.mean(ve_cadherin[periphery])
-        f_intensity = np.mean(f_actin[periphery])
-        cytoplasm_ve = np.mean(ve_cadherin[interior])
-        cytoplasm_f = np.mean(f_actin[interior])
-        dapi_intensity = np.mean(dapi[region.coords[:, 0], region.coords[:, 1]])
+        ve_per = np.mean(ve_cadherin[periphery])
+        ve_cyto = np.mean(ve_cadherin[interior])
+        f_per = np.mean(f_actin[periphery])
+        f_cyto = np.mean(f_actin[interior])
+        dapi_mean = np.mean(dapi[region.coords[:, 0], region.coords[:, 1]])
+        ve_ratio = ve_per / (ve_cyto + 1e-6)
+        f_ratio = f_per / (f_cyto + 1e-6)
+        column_id = int(region.centroid[1] // (img.shape[1] / n_columns))
+        column_label = column_labels[column_id] if column_labels and column_id < len(column_labels) else str(column_id)
 
-        ve_ratio = ve_intensity / (cytoplasm_ve + 1e-6)
-        f_ratio = f_intensity / (cytoplasm_f + 1e-6)
-
-        cell_column = int(region.centroid[1] // (img.shape[1] / n_columns))
-        column_label = column_labels[cell_column] if column_labels and cell_column < len(column_labels) else str(cell_column + 1)
-
-        region_mask = segmentation_labels == region.label
-        skeleton = morphology.skeletonize(region_mask)
-        n_breaks = measure.label(skeleton).max()
+        skel = morphology.skeletonize(periphery)
+        n_breaks = measure.label(skel).max()
 
         results.append({
             "Cell_ID": region.label,
-            "Area": region.area,
             "Centroid_X": region.centroid[1],
-            "Column_ID": cell_column,
+            "Column_ID": column_id,
             "Column_Label": column_label,
-            "Periphery_Intensity_VE": ve_intensity,
-            "Cytoplasm_Intensity_VE": cytoplasm_ve,
+            "Periphery_Intensity_VE": ve_per,
+            "Cytoplasm_Intensity_VE": ve_cyto,
             "VE_Ratio": ve_ratio,
-            "Periphery_Intensity_F": f_intensity,
-            "Cytoplasm_Intensity_F": cytoplasm_f,
+            "Periphery_Intensity_F": f_per,
+            "Cytoplasm_Intensity_F": f_cyto,
             "F_Ratio": f_ratio,
-            "DAPI_Intensity": dapi_intensity,
+            "DAPI_Intensity": dapi_mean,
             "Periphery_Breaks": n_breaks
         })
 
