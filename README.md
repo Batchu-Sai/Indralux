@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://indralux.streamlit.app/">Live App</a> •
   <a href="https://github.com/yourusername/Indralux">GitHub Repo</a> •
-  <a href="docs/metrics_table.md">📖 Full Metrics Table</a> •
+  <a href="docs/metrics_table.md">Full Metrics Table</a> •
   <a href="#how-it-works">How It Works</a>
 </p>
 
