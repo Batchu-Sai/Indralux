@@ -61,3 +61,4 @@ if uploaded_file is not None:
             st.download_button("Download Metrics CSV", data=open(df_path, "rb").read(), file_name="indralux_metrics.csv")
             st.download_button("Download Overlay Image", data=open(overlay_path, "rb").read(), file_name="overlay_labeled.png")
             st.download_button("Download Disruption Map", data=open(map_path, "rb").read(), file_name="disruption_map.png")
+
