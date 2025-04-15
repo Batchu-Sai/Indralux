@@ -103,6 +103,7 @@ if st.checkbox("📂 Upload .pptx for Batch Analysis"):
                         safe_stat_defaults = [m for m in ["VE_Ratio", "Disruption_Index"] if m in metric_cols]
                         stat_cols = st.multiselect("Select metrics to test:", metric_cols, default=safe_stat_defaults, key="stats_" + selected)
 
+
                         if stat_cols:
                             stats_df = run_statistical_tests(slide_df[["Column_Label"] + stat_cols])
                             st.dataframe(stats_df)
