@@ -59,7 +59,7 @@ This tool is designed around biological literature and physical modeling of BBB 
 
 If you use this tool in your work, please cite:
 
-> Indralux: Engineering-Inspired Metrics for Quantifying Endothelial Barrier Disruption (2024)
+> Indralux: Engineering-Inspired Metrics for Quantifying Endothelial Barrier Disruption (2025)
 
 ---
 
