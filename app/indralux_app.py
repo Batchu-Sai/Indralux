@@ -15,20 +15,13 @@ from core.indralux_stats import run_statistical_tests
 
 # Utilities
 from utils.pptx_extract import extract_clean_images_from_pptx
-from utils.column_split_improved import split_columns_improved
+from utils.column_split_uniform import split_into_n_columns
 
 # ——— PAGE HEADER ———
 st.set_page_config(page_title="Indralux", page_icon="assets/favicon_32.png", layout="wide")
 st.image("assets/indralux_final_logo.png", width=300)
 st.markdown("<h2 style='text-align: center;'>Quantifying endothelial disruption — pixel by pixel</h2>", unsafe_allow_html=True)
 st.markdown("---")
-
-from utils.pptx_extract import extract_clean_images_from_pptx
-from utils.column_split_uniform import split_into_n_columns
-
-
-from utils.pptx_extract import extract_clean_images_from_pptx
-from utils.column_split_uniform import split_into_n_columns
 
 # Track per-slide results
 batch_results = {}
