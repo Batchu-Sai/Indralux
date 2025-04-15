@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://your-streamlit-app-url">Live App</a> •
-  <a href="https://github.com/yourusername/indralux">GitHub Repo</a> •
+  <a href="https://indralux.streamlit.app/">Live App</a> •
+  <a href="https://github.com/yourusername/Indralux">GitHub Repo</a> •
   <a href="#metrics">Metrics</a> •
   <a href="#how-it-works">How It Works</a>
 </p>
