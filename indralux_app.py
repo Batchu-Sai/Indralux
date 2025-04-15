@@ -37,8 +37,8 @@ if uploaded_file:
 
     with st.spinner("Processing image..."):
         df, labels, img_rgb = process_with_breaks(img_path, n_columns=len(column_labels), column_labels=column_labels)
-        df = pd.merge(df, add_morphological_metrics(df, labels), on="Cell_ID")
-        df = pd.merge(df, add_extended_metrics(df, labels), on="Cell_ID")
+        df = pd.merge(df, add_morphological_metrics(df, labels), on="Cell_ID", how="left", suffixes=("", "_morph"))
+        df = pd.merge(df, add_extended_metrics(df, labels), on="Cell_ID", how="left", suffixes=("", "_ext"))
         df = add_ve_snr(df, labels, img_rgb[:, :, 1])
 
     st.success("Segmentation and analysis complete.")
