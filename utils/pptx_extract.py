@@ -17,5 +17,5 @@ def extract_images_from_pptx(pptx_path, output_dir):
                     f.write(image.blob)
                 saved_files.append(name)
 
-    return saved_files  # ✅ This fixes the error!
+    return saved_files
 
