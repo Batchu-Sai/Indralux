@@ -4,8 +4,7 @@
 
 <p align="center">
   <img src="assets/indralux_final_logo.png" width="260" alt="Indralux Logo"><br>
-  <strong>INDRALUX</strong><br>
-  <em>Quantifying endothelial disruption — pixel by pixel</em>
+  <em></em>
 </p>
 
 <p align="center">
