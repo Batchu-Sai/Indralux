@@ -2,6 +2,19 @@
 # Indralux
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+<p align="center">
+  <img src="assets/indralux_final_logo.png" width="260" alt="Indralux Logo"><br>
+  <strong>INDRALUX</strong><br>
+  <em>Quantifying endothelial disruption — pixel by pixel</em>
+</p>
+
+<p align="center">
+  <a href="https://your-streamlit-app-url">Live App</a> •
+  <a href="https://github.com/yourusername/indralux">GitHub Repo</a> •
+  <a href="#metrics">Metrics</a> •
+  <a href="#how-it-works">How It Works</a>
+</p>
+
 Quantifying endothelial barrier disruption with image-based metrics.
 
 Indralux is an advanced image analysis pipeline purpose-built to quantify blood-brain barrier (BBB) disruption, particularly in response to agents like mannitol. It combines biologically grounded quantification with metrics inspired by structural engineering and image science.
