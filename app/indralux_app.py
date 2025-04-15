@@ -23,8 +23,11 @@ st.image("assets/indralux_final_logo.png", width=300)
 st.markdown("<h2 style='text-align: center;'>Quantifying endothelial disruption — pixel by pixel</h2>", unsafe_allow_html=True)
 st.markdown("---")
 
-# Track per-slide results
-batch_results = {}
+
+# ——— BATCH PPT ANALYSIS ———
+# Track results
+if "batch_results" not in st.session_state:
+    st.session_state.batch_results = {}
 
 if st.checkbox("📂 Upload .pptx for Batch Analysis"):
     pptx_file = st.file_uploader("Upload your .pptx file", type=["pptx"])
@@ -39,22 +42,34 @@ if st.checkbox("📂 Upload .pptx for Batch Analysis"):
         clean_imgs = extract_clean_images_from_pptx(pptx_path, extract_dir)
 
         if not clean_imgs:
-            st.error("No clean image objects found.")
+            st.error("❌ No clean images found.")
         else:
-            st.success(f"Found {len(clean_imgs)} image(s).")
-            selected = st.selectbox("Select slide image to analyze:", clean_imgs)
+            selected = st.selectbox("📸 Select slide image to analyze:", clean_imgs)
 
             if selected:
+                # Show preview
                 img_path = os.path.join(extract_dir, selected)
                 st.image(img_path, caption=f"Preview: {selected}", use_container_width=True)
 
-                n_cols = st.number_input(f"How many columns in {selected}?", min_value=1, max_value=12, value=4, key="ncol_" + selected)
-                labels_str = st.text_input("Column labels (comma-separated)", value="Control,5,10,15", key="lab_" + selected)
-                col_labels = [lbl.strip() for lbl in labels_str.split(",")]
-                if len(col_labels) != n_cols:
-                    st.warning("Label count doesn't match number of columns.")
+                # Setup state for this image
+                label_key = f"labels_{selected}"
+                run_key = f"run_{selected}"
 
-                if st.button("Run analysis on this slide", key="run_" + selected):
+                if label_key not in st.session_state:
+                    st.session_state[label_key] = "Control,5,10,15"
+                if run_key not in st.session_state:
+                    st.session_state[run_key] = False
+
+                n_cols = st.number_input("How many panels?", min_value=1, max_value=12, value=4, key=f"ncols_{selected}")
+                col_labels_input = st.text_input("Column labels (comma-separated):", value=st.session_state[label_key], key=label_key)
+                col_labels = [l.strip() for l in col_labels_input.split(",")]
+                st.session_state[label_key] = col_labels_input
+
+                if st.button("▶️ Run analysis", key=f"runbtn_{selected}"):
+                    st.session_state[run_key] = True
+
+                # Run analysis if triggered
+                if st.session_state[run_key]:
                     split_dir = os.path.join(tempfile.gettempdir(), "split_columns")
                     os.makedirs(split_dir, exist_ok=True)
                     col_paths = split_into_n_columns(img_path, split_dir, n_cols)
@@ -62,60 +77,55 @@ if st.checkbox("📂 Upload .pptx for Batch Analysis"):
                     per_col_data = []
                     for idx, col_path in enumerate(col_paths):
                         try:
-                            col_label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
-                            df, labels, img_rgb = process_with_breaks(col_path, n_columns=1, column_labels=[col_label])
+                            label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
+                            df, labels, img_rgb = process_with_breaks(col_path, n_columns=1, column_labels=[label])
                             df = pd.merge(df, add_morphological_metrics(df, labels), on="Cell_ID", how="left")
                             df = pd.merge(df, add_extended_metrics(df, labels), on="Cell_ID", how="left")
                             df = add_ve_snr(df, labels, img_rgb[:, :, 1])
                             df["Slide_Image"] = selected
-                            df["Panel_Label"] = col_label
+                            df["Panel_Label"] = label
                             per_col_data.append(df)
                         except Exception as e:
-                            st.error(f"Failed to process {col_path}: {e}")
+                            st.warning(f"⚠️ Failed: {e}")
 
                     if per_col_data:
-                        slide_df = pd.concat(per_col_data, ignore_index=True)
-                        batch_results[selected] = slide_df
+                        result_df = pd.concat(per_col_data, ignore_index=True)
+                        st.session_state.batch_results[selected] = result_df
+                        st.success(f"✅ Metrics for {selected}")
+                        st.dataframe(result_df.head())
 
-                        st.success(f"Metrics complete for {selected}")
-                        st.dataframe(slide_df.head())
-
-                        # Optional trend plot
-                        st.markdown("#### Metric Trends (per slide)")
-                        metric_cols = [col for col in slide_df.columns if slide_df[col].dtype in ['float64', 'int64'] and col not in ['Cell_ID']]
+                        # Plots
+                        metric_cols = [col for col in result_df.columns if result_df[col].dtype in ['float64', 'int64']]
                         safe_defaults = [m for m in ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"] if m in metric_cols]
-                        chosen_metrics = st.multiselect("Select metrics to plot:", metric_cols, default=safe_defaults, key="plot_" + selected)
+                        chosen_metrics = st.multiselect("📈 Plot metrics:", metric_cols, default=safe_defaults, key=f"plot_{selected}")
 
                         if chosen_metrics:
-                            fig_path = os.path.join(tempfile.gettempdir(), f"trend_{selected}.png")
-                            plot_metric_trends_manual(slide_df, chosen_metrics, fig_path)
+                            fig_path = os.path.join(tempfile.gettempdir(), f"plot_{selected}.png")
+                            plot_metric_trends_manual(result_df, chosen_metrics, fig_path)
                             st.image(fig_path, caption="Trend Plot", use_container_width=True)
 
-                        # Optional stats
-                        st.markdown("#### Statistical Analysis (per slide)")
+                        # Stats
                         safe_stat_defaults = [m for m in ["VE_Ratio", "Disruption_Index"] if m in metric_cols]
-                        stat_cols = st.multiselect("Select metrics to test:", metric_cols, default=safe_stat_defaults, key="stats_" + selected)
-
+                        stat_cols = st.multiselect("📊 Run stats on:", metric_cols, default=safe_stat_defaults, key=f"stats_{selected}")
 
                         if stat_cols:
-                            stats_df = run_statistical_tests(slide_df[["Column_Label"] + stat_cols])
+                            stats_df = run_statistical_tests(result_df[["Column_Label"] + stat_cols])
                             st.dataframe(stats_df)
-                            stats_path = os.path.join(tempfile.gettempdir(), f"stats_{selected}.csv")
-                            stats_df.to_csv(stats_path, index=False)
-                            st.download_button("Download Stats CSV", open(stats_path, "rb"), f"{selected}_stats.csv")
+                            stats_csv = os.path.join(tempfile.gettempdir(), f"stats_{selected}.csv")
+                            stats_df.to_csv(stats_csv, index=False)
+                            st.download_button("⬇ Download Stats CSV", open(stats_csv, "rb"), f"{selected}_stats.csv")
 
-                        # Export metrics
-                        metrics_out = os.path.join(tempfile.gettempdir(), f"{selected}_metrics.csv")
-                        slide_df.to_csv(metrics_out, index=False)
-                        st.download_button("Download Slide Metrics CSV", open(metrics_out, "rb"), f"{selected}_metrics.csv")
+                        # Per-slide export
+                        out_csv = os.path.join(tempfile.gettempdir(), f"{selected}_metrics.csv")
+                        result_df.to_csv(out_csv, index=False)
+                        st.download_button("⬇ Download Slide CSV", open(out_csv, "rb"), f"{selected}_metrics.csv")
 
-# Export all collected results
-if batch_results:
-    full_df = pd.concat(batch_results.values(), ignore_index=True)
-    st.markdown("## Download All Batch Metrics")
+# Global export
+if st.session_state.batch_results:
+    all_df = pd.concat(st.session_state.batch_results.values(), ignore_index=True)
     full_csv = os.path.join(tempfile.gettempdir(), "indralux_full_batch.csv")
-    full_df.to_csv(full_csv, index=False)
-    st.download_button("Download Full CSV", open(full_csv, "rb"), "indralux_batch_all_metrics.csv")
+    all_df.to_csv(full_csv, index=False)
+    st.download_button("📦 Download All Metrics CSV", open(full_csv, "rb"), "indralux_batch_all.csv")
 
 
 
