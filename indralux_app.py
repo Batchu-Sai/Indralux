@@ -51,8 +51,8 @@ if uploaded_file:
         st.image(overlay_path, caption="Overlay", use_container_width=True)
 
     if st.checkbox("Show trend plots"):
-    available_metrics = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
-    selected_metrics = st.multiselect("Select metrics to plot:", options=available_metrics, default=["DAPI_Intensity", "VE_Ratio", "Disruption_Index"])
+        available_metrics = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
+        selected_metrics = st.multiselect("Select metrics to plot:", options=available_metrics, default=["DAPI_Intensity", "VE_Ratio", "Disruption_Index"])
 
     if "Column_Label" not in df.columns:
         st.error("⚠️ 'Column_Label' not found. Ensure labels are correctly assigned.")
@@ -65,8 +65,8 @@ if uploaded_file:
         st.image(fig_path, caption="Metric Trends", use_container_width=True)
 
     if st.checkbox("Run statistics"):
-    numeric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
-    stat_metrics = st.multiselect("Select metrics to test:", options=numeric_cols, default=["VE_Ratio", "Disruption_Index"])
+        numeric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
+        stat_metrics = st.multiselect("Select metrics to test:", options=numeric_cols, default=["VE_Ratio", "Disruption_Index"])
     
     if not stat_metrics:
         st.warning("Please select at least one metric to analyze.")
