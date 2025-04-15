@@ -10,20 +10,20 @@
 
 <p align="center">
   <a href="https://indralux.streamlit.app/">Live App</a> •
-  <a href="https://github.com/yourusername/Indralux">GitHub Repo</a> •
+  <a href="https://github.com/Batchu-Sai/Indralux">GitHub Repo</a> •
   <a href="docs/metrics_table.md">Full Metrics Table</a> •
   <a href="#how-it-works">How It Works</a>
 </p>
 
 Quantifying endothelial barrier disruption with image-based metrics.
 
-Indralux is an advanced image analysis pipeline purpose-built to quantify blood-brain barrier (BBB) disruption, particularly in response to agents like mannitol. It combines biologically grounded quantification with metrics inspired by structural engineering and image science.
+Indralux is an advanced image analysis pipeline. It combines biologically grounded quantification with metrics inspired by structural engineering and image science, oriented towards cellular barrier diruption analyses
 
 ---
 
 ## Key Features
 
-- Segment individual endothelial cells from immunofluorescent images
+- Segment individual cells from immunofluorescent images
 - Compute per-cell and per-image metrics for:
   - VE-cadherin localization and signal-to-noise
   - Actin cytoskeleton integrity
@@ -32,7 +32,7 @@ Indralux is an advanced image analysis pipeline purpose-built to quantify blood-
   - Cell shape (circularity, solidity, aspect ratio)
   - Intercellular space (gap area, density, max gap)
   - Curvature irregularity of junctions
-- Composite Disruption Index to track BBB damage
+- Composite Disruption Index to track overall damage
 - Overlay images with contours and cell IDs
 - Multi-metric summary plots and spatial heatmaps
 - Export results as CSV, Markdown, LaTeX
@@ -78,7 +78,7 @@ The following peer-reviewed works informed the metrics, methodology, and biologi
 
 If you use this tool in your work, please cite:
 
-> Indralux: Engineering-Inspired Metrics for Quantifying Endothelial Barrier Disruption (2025)
+> Indralux (2025)
 
 ---
 
