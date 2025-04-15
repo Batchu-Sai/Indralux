@@ -26,6 +26,7 @@ st.markdown("---")
 from utils.pptx_extract import extract_clean_images_from_pptx
 from utils.column_split_uniform import split_into_n_columns
 
+
 # ───────────── BATCH UPLOAD FROM PPTX ─────────────
 if st.checkbox("📂 Upload .pptx for Batch Analysis"):
     pptx_file = st.file_uploader("Upload your .pptx file", type=["pptx"])
