@@ -5,11 +5,10 @@ from processor import process_with_breaks
 from metrics import add_morphological_metrics, add_extended_metrics, add_ve_snr
 from overlay import draw_colored_overlay_with_cv2
 from plotting import plot_spatial_disruption_map, plot_metric_trends_manual
-from indralux_stats import run_statistical_tests 
+from indralux_stats import run_statistical_tests
 import cv2
 import tempfile
 import os
-
 
 st.set_page_config(
     page_title="Indralux",
@@ -52,9 +51,13 @@ if uploaded_file:
         st.image(overlay_path, caption="Overlay", use_container_width=True)
 
     if st.checkbox("Show trend plots"):
-        fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
-        plot_metric_trends_manual(df, ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"], fig_path)
-        st.image(fig_path, caption="Metric Trends", use_container_width=True)
+        if "Column_Label" not in df.columns:
+            st.error("⚠️ 'Column_Label' not found in the dataset. Make sure you defined column labels correctly.")
+            st.write("Available columns:", df.columns.tolist())
+        else:
+            fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
+            plot_metric_trends_manual(df, ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"], fig_path)
+            st.image(fig_path, caption="Metric Trends", use_container_width=True)
 
     if st.checkbox("Run statistics"):
         result_df = run_statistical_tests(df)
@@ -67,3 +70,4 @@ if uploaded_file:
     csv_path = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
     df.to_csv(csv_path, index=False)
     st.download_button("Download Full Metrics CSV", open(csv_path, "rb"), "indralux_metrics.csv")
+
