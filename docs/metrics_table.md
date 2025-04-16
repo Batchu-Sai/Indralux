@@ -1,5 +1,4 @@
-# Indralux Metrics Table
-
+# Metrics Table
 
 | Metric                        | Formula                                            | Unit             | Engineering Analog               | Biological Meaning                                     | Reference                                                   | Status                    |
 |------------------------------|----------------------------------------------------|------------------|----------------------------------|--------------------------------------------------------|-------------------------------------------------------------|---------------------------|
@@ -26,4 +25,3 @@
 | Aspect Ratio               | Major axis / Minor axis                             | unitless         | Stretch / elongation             | Migratory polarity                                     | This work                                                    | Complete                  |
 | Centroid_X                 | X-coordinate of region center                       | pixel or µm      | Field binning                    | Maps cell to timepoint zone                            | This work                                                    | Complete                  |
 | Column_Label               | Image column label                                  | categorical      | Treatment / dose bin             | Spatial treatment/timepoint zone                       | This work                                                    | Complete                  |
-
