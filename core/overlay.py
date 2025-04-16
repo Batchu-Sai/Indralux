@@ -5,15 +5,23 @@ import numpy as np
 from skimage.measure import regionprops
 import matplotlib.cm as cm
 
-def draw_colored_overlay_with_cv2(img, labels, df):
-    overlay = img.copy()
-    cmap = cm.get_cmap("viridis", np.max(labels) + 1)
+def draw_colored_overlay_with_cv2(image_rgb, label_mask, df):
+    overlay = image_rgb.copy()
+    overlay = cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR)  # OpenCV uses BGR
 
-    for region in regionprops(labels):
-        if region.label in df['Cell_ID'].values:
-            y, x = map(int, region.centroid)
-            color = tuple((np.array(cmap(region.label)[:3]) * 255).astype(int))
-            cv2.drawContours(overlay, [region.convex_image.astype(np.uint8)], -1, color, 1)
-            cv2.putText(overlay, str(region.label), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1, cv2.LINE_AA)
+    props = regionprops(label_mask)
 
+    for region in props:
+        if region.label not in df['Cell_ID'].values:
+            continue
+
+        mask = (label_mask == region.label).astype(np.uint8)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        if contours:
+            color = tuple(np.random.randint(0, 255, 3).tolist())
+            cv2.drawContours(overlay, contours, -1, color, 1)
+
+    overlay = cv2.cvtColor(overlay, cv2.COLOR_BGR2RGB)
     return overlay
+
