@@ -29,6 +29,31 @@ if "batch_results" not in st.session_state:
 # Sidebar Mode Switch
 mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analysis"])
 
+# Sidebar Mode Switch
+mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analysis"])
+
+# Channel marker configuration with helpful tooltips
+marker_f1 = st.sidebar.selectbox(
+    "Marker in Channel 1 (Red)",
+    ["F-Actin", "VE-Cadherin", "DAPI", "Other"],
+    index=0,
+    help="Using standard markers? Leave as is. For custom stains (e.g., FITC, Alexa Fluor), specify channel mapping manually."
+)
+
+marker_f2 = st.sidebar.selectbox(
+    "Marker in Channel 2 (Green)",
+    ["VE-Cadherin", "F-Actin", "DAPI", "Other"],
+    index=1,
+    help="Using standard markers? Leave as is. For custom stains (e.g., FITC, Alexa Fluor), specify channel mapping manually."
+)
+
+marker_f3 = st.sidebar.selectbox(
+    "Marker in Channel 3 (Blue)",
+    ["DAPI", "F-Actin", "VE-Cadherin", "Other"],
+    index=2,
+    help="Using standard markers? Leave as is. For custom stains (e.g., FITC, Alexa Fluor), specify channel mapping manually."
+)
+
 # Sidebar marker specification
 st.sidebar.markdown("### Marker Channel Mapping")
 default_map = {
