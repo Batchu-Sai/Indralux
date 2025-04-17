@@ -1,14 +1,11 @@
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
 import pandas as pd
+import numpy as np
 import scikit_posthocs as sp
 from scipy.stats import kruskal
 
-# ————————————————————————————————
-# Basic Trends Over Time or Columns
-# ————————————————————————————————
 def plot_metric_trends_manual(df, metrics, save_path):
     if "Column_Label" not in df.columns:
         raise ValueError("Column_Label is missing from the DataFrame.")
@@ -28,13 +25,8 @@ def plot_metric_trends_manual(df, metrics, save_path):
     plt.savefig(save_path)
     plt.close()
 
-
-# ———————————————————————————————————
-# Spatial Disruption Map w/ Stats
-# ———————————————————————————————————
 def plot_spatial_disruption_map(df, save_path, test="kruskal", posthoc="dunn", show_sig=False):
     df = df[df['VE_Ratio'].notnull() & df['Column_Label'].notnull()]
-
     plt.figure(figsize=(8, 5), dpi=300)
     ax = sns.boxplot(data=df, x='Column_Label', y='VE_Ratio', linewidth=1.2, fliersize=3)
     sns.stripplot(data=df, x='Column_Label', y='VE_Ratio', color='black', alpha=0.4, jitter=True, size=2)
@@ -49,11 +41,11 @@ def plot_spatial_disruption_map(df, save_path, test="kruskal", posthoc="dunn", s
                         ax.plot([i, j], [y, y], lw=1.2, color='black')
                         ax.text((i + j) / 2, y + 0.01, "*", ha='center', va='bottom', fontsize=10)
         except Exception as e:
-            print(f"Posthoc Dunn test failed: {e}")
+            print(f"Posthoc test failed: {e}")
 
-    plt.title("VE-Cadherin Ratio Across Columns", fontsize=11)
-    plt.xlabel("Treatment Condition", fontsize=10)
-    plt.ylabel("VE Ratio (Periphery / Cytoplasm)", fontsize=10)
+    plt.title("VE-Cadherin Ratio Across Columns")
+    plt.xlabel("Treatment Condition")
+    plt.ylabel("VE Ratio (Periphery / Cytoplasm)")
     sns.despine()
     plt.tight_layout()
     plt.savefig(save_path)
