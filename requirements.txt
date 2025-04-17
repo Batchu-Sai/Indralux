@@ -1,11 +1,11 @@
+streamlit
+opencv-python
+scikit-image
 numpy
 pandas
-opencv-python-headless
-scikit-image
-scipy
 matplotlib
-seaborn
-streamlit
 scikit-posthocs
-python-pptx
+scipy
 Pillow
+python-pptx
+seaborn
