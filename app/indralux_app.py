@@ -18,7 +18,7 @@ from utils.pptx_extract import extract_clean_images_from_pptx
 from utils.column_split_uniform import split_into_n_columns
 
 # Page Configuration
-st.set_page_config(page_title="Fluorescent microscopy image analyzer", page_icon="assets/favicon_32.png", layout="wide")
+st.set_page_config(page_title="Fluorescent microscopy image analyzer", layout="wide")
 #st.sidebar.image("assets/indralux_final_logo.png", width=240)
 #st.sidebar.title("Fluorescent microscopy image analyzer")
 
