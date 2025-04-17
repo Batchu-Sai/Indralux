@@ -9,4 +9,3 @@ streamlit
 scikit-posthocs
 python-pptx
 Pillow
-scipy
