@@ -56,7 +56,7 @@ if mode == "Batch PPTX Upload":
         if clean_imgs:
             selected = st.selectbox("Select slide image to analyze:", clean_imgs)
             img_path = os.path.join(extract_dir, selected)
-            st.image(img_path, caption=selected, use_container_width=True)
+            st.image(img_path, caption=selected, use_column_width=True)
 
             label_key = f"labels_{selected}"
             run_key = f"run_{selected}"
@@ -109,7 +109,7 @@ if mode == "Batch PPTX Upload":
                     if chosen_metrics:
                         fig_path = os.path.join(tempfile.gettempdir(), f"plot_{selected}.png")
                         plot_metric_trends_manual(result_df, chosen_metrics, fig_path)
-                        st.image(fig_path, caption="Metric Trends", use_container_width=True)
+                        st.image(fig_path, caption="Metric Trends", use_column_width=True)
 
                     safe_stat_defaults = [m for m in ["VE_Ratio", "Disruption_Index"] if m in metric_cols]
                     stat_cols = st.multiselect("Run stats on:", metric_cols, default=safe_stat_defaults, key=f"stats_{selected}")
@@ -130,7 +130,7 @@ elif mode == "Single Image Analysis":
             tmp.write(uploaded_file.read())
             img_path = tmp.name
 
-        st.image(img_path, caption="Uploaded Image", use_container_width=True)
+        st.image(img_path, caption="Uploaded Image", use_column_width=True)
 
         with st.spinner("Processing image..."):
             try:
@@ -151,7 +151,7 @@ elif mode == "Single Image Analysis":
             overlay = draw_colored_overlay_with_cv2(img_rgb, labels, df)
             overlay_path = os.path.join(tempfile.gettempdir(), "overlay.png")
             cv2.imwrite(overlay_path, cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR))
-            st.image(overlay_path, caption="Overlay", use_container_width=True)
+            st.image(overlay_path, caption="Overlay", use_column_width=True)
 
         if st.checkbox("Plot trends"):
             metrics = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
@@ -163,7 +163,7 @@ elif mode == "Single Image Analysis":
             elif selected_metrics:
                 fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
                 plot_metric_trends_manual(df, selected_metrics, fig_path)
-                st.image(fig_path, caption="Metric Trends", use_container_width=True)
+                st.image(fig_path, caption="Metric Trends", use_column_width=True)
 
         if st.checkbox("Run statistical tests"):
             numeric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
