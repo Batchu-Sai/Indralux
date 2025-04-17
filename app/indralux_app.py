@@ -58,9 +58,6 @@ default_map = {
     "VE-Cadherin": 1,
     "F-Actin": 0
 }
-marker_map = {}
-for marker in default_map:
-    marker_map[marker] = st.sidebar.selectbox(f"{marker} channel", options=[0, 1, 2, "None"], index=[0,1,2,"None"].index(default_map[marker]))
 
 # Batch Mode
 if mode == "Batch PPTX Upload":
