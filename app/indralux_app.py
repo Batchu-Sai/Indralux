@@ -27,37 +27,46 @@ if "batch_results" not in st.session_state:
     st.session_state.batch_results = {}
 
 # Sidebar Mode Switch
-mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analysis"])
+mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analysis"], key="mode_switch")
 
-# Channel marker configuration with helpful tooltips
+# Channel marker configuration with tooltips
 marker_f1 = st.sidebar.selectbox(
     "Marker in Channel 1 (Red)",
     ["F-Actin", "VE-Cadherin", "DAPI", "Other"],
     index=0,
-    help="Using standard markers? Leave as is. For custom stains (e.g., FITC, Alexa Fluor), specify channel mapping manually."
+    help="Using standard markers? Leave as is. For custom stains (e.g., FITC, Alexa Fluor), specify mapping manually.",
+    key="marker_red"
 )
 
 marker_f2 = st.sidebar.selectbox(
     "Marker in Channel 2 (Green)",
     ["VE-Cadherin", "F-Actin", "DAPI", "Other"],
-    index=1,
-    help="Using standard markers? Leave as is. For custom stains (e.g., FITC, Alexa Fluor), specify channel mapping manually."
+    index=0,
+    help="Using standard markers? Leave as is. For custom stains (e.g., FITC, Alexa Fluor), specify mapping manually.",
+    key="marker_green"
 )
 
 marker_f3 = st.sidebar.selectbox(
     "Marker in Channel 3 (Blue)",
     ["DAPI", "F-Actin", "VE-Cadherin", "Other"],
-    index=2,
-    help="Using standard markers? Leave as is. For custom stains (e.g., FITC, Alexa Fluor), specify channel mapping manually."
+    index=0,
+    help="Using standard markers? Leave as is. For custom stains (e.g., FITC, Alexa Fluor), specify mapping manually.",
+    key="marker_blue"
 )
 
-# Sidebar marker specification
-st.sidebar.markdown("### Marker Channel Mapping")
-default_map = {
-    "DAPI": 2,
-    "VE-Cadherin": 1,
-    "F-Actin": 0
+# Build marker-channel mapping
+marker_channel_map = {
+    marker_f1: 0,
+    marker_f2: 1,
+    marker_f3: 2
 }
+
+# Just for debugging / confirmation
+st.sidebar.markdown("**Assigned Channels:**")
+for marker, channel in marker_channel_map.items():
+    if marker != "Other":
+        st.sidebar.markdown(f"- **{marker}** → Channel {channel}")
+
 
 # Batch Mode
 if mode == "Batch PPTX Upload":
