@@ -3,30 +3,47 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import tempfile, os, cv2, sys
 
+# Enable parent directory access
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+# Core logic
 from core.processor import process_with_breaks
 from core.metrics import add_morphological_metrics, add_extended_metrics, add_ve_snr
 from core.overlay import draw_colored_overlay_with_cv2
 from core.plotting import plot_metric_trends_manual
 from core.indralux_stats import run_statistical_tests
+
+# Utilities
 from utils.pptx_extract import extract_clean_images_from_pptx
 from utils.column_split_uniform import split_into_n_columns
 
+# Page Configuration
 st.set_page_config(page_title="Indralux", page_icon="assets/favicon_32.png", layout="wide")
 st.sidebar.image("assets/indralux_final_logo.png", width=240)
 st.sidebar.title("Indralux: Quantifying Endothelial Disruption")
 
+# Results tracking
 if "batch_results" not in st.session_state:
     st.session_state.batch_results = {}
 
+# Sidebar Mode Switch
 mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analysis"])
-default_markers = {"F-actin": 0, "VE-cadherin": 1, "DAPI": 2}
-marker_input = st.sidebar.text_input("Marker channels (e.g. F-actin=0,VE-cadherin=1,DAPI=2)", value="F-actin=0,VE-cadherin=1,DAPI=2")
-marker_map = {k.strip(): int(v.strip()) for k, v in (pair.split("=") for pair in marker_input.split(","))}
 
+# Sidebar marker specification
+st.sidebar.markdown("### Marker Channel Mapping")
+default_map = {
+    "DAPI": 2,
+    "VE-Cadherin": 1,
+    "F-Actin": 0
+}
+marker_map = {}
+for marker in default_map:
+    marker_map[marker] = st.sidebar.selectbox(f"{marker} channel", options=[0, 1, 2, "None"], index=[0,1,2,"None"].index(default_map[marker]))
+
+# Batch Mode
 if mode == "Batch PPTX Upload":
     pptx_file = st.sidebar.file_uploader("Upload .pptx file", type=["pptx"])
+
     if pptx_file:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as tmp:
             tmp.write(pptx_file.read())
@@ -65,14 +82,14 @@ if mode == "Batch PPTX Upload":
                 for idx, col_path in enumerate(col_paths):
                     try:
                         label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
-                        df, labels, img_rgb = process_with_breaks(col_path, n_columns=1, column_labels=[label], marker_map=marker_map)
+                        df, labels, img_rgb = process_with_breaks(col_path, n_columns=1, column_labels=[label])
                         morph = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
                         morph = morph[[col for col in morph.columns if col not in df.columns or col == "Cell_ID"]]
                         df = pd.merge(df, morph, on="Cell_ID", how="left")
                         ext = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
                         ext = ext[[col for col in ext.columns if col not in df.columns or col == "Cell_ID"]]
                         df = pd.merge(df, ext, on="Cell_ID", how="left")
-                        df = add_ve_snr(df, labels, img_rgb[:, :, marker_map.get("VE-cadherin", 1)])
+                        df = add_ve_snr(df, labels, img_rgb[:, :, 1])  # Still assumes VE is in green
                         df["Slide_Image"] = selected
                         df["Panel_Label"] = label
                         per_col_data.append(df)
@@ -101,6 +118,7 @@ if mode == "Batch PPTX Upload":
                         stats_df = run_statistical_tests(result_df[["Column_Label"] + stat_cols])
                         st.dataframe(stats_df)
 
+# Single Image Mode
 elif mode == "Single Image Analysis":
     uploaded_file = st.sidebar.file_uploader("Upload microscopy image", type=["png", "jpg", "jpeg"])
 
@@ -116,12 +134,12 @@ elif mode == "Single Image Analysis":
 
         with st.spinner("Processing image..."):
             try:
-                df, labels, img_rgb = process_with_breaks(img_path, n_columns=len(column_labels), column_labels=column_labels, marker_map=marker_map)
+                df, labels, img_rgb = process_with_breaks(img_path, n_columns=len(column_labels), column_labels=column_labels)
                 morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
                 ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
                 df = pd.merge(df, morph_df, on="Cell_ID", how="left")
                 df = pd.merge(df, ext_df, on="Cell_ID", how="left")
-                df = add_ve_snr(df, labels, img_rgb[:, :, marker_map.get("VE-cadherin", 1)])
+                df = add_ve_snr(df, labels, img_rgb[:, :, 1])
                 st.success("Analysis complete.")
             except Exception as e:
                 st.error(f"Failed to process image: {e}")
