@@ -8,16 +8,19 @@ import pandas as pd
 def process_with_breaks(img_path, n_columns=1, column_labels=None):
     img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
 
-    # Convert grayscale to 3-channel RGB (replicate)
     if img.ndim == 2:
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    elif img.shape[2] == 1:
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+    elif img.shape[2] == 4:
+        img = img[:, :, :3]
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    else:
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    f_actin = img_rgb[:, :, 0]
-    ve_cadherin = img_rgb[:, :, 1]
-    dapi = img_rgb[:, :, 2]
+    channels = img_rgb.shape[2]
+
+    f_actin = img_rgb[:, :, 0] if channels >= 1 else np.zeros_like(img_rgb[:, :, 0])
+    ve_cadherin = img_rgb[:, :, 1] if channels >= 2 else np.zeros_like(img_rgb[:, :, 0])
+    dapi = img_rgb[:, :, 2] if channels >= 3 else np.zeros_like(img_rgb[:, :, 0])
 
     actin_thresh = filters.threshold_otsu(f_actin)
     borders = f_actin > actin_thresh
@@ -39,18 +42,17 @@ def process_with_breaks(img_path, n_columns=1, column_labels=None):
     for region in measure.regionprops(segmentation_labels, intensity_image=ve_cadherin):
         if region.area < 100:
             continue
-
         full_mask = segmentation_labels == region.label
         interior = morphology.binary_erosion(full_mask, morphology.disk(3))
         periphery = full_mask ^ interior
 
-        ve_per = np.mean(ve_cadherin[periphery]) if np.any(periphery) else np.nan
-        ve_cyto = np.mean(ve_cadherin[interior]) if np.any(interior) else np.nan
-        f_per = np.mean(f_actin[periphery]) if np.any(periphery) else np.nan
-        f_cyto = np.mean(f_actin[interior]) if np.any(interior) else np.nan
-        dapi_mean = np.mean(dapi[region.coords[:, 0], region.coords[:, 1]])
-        ve_ratio = ve_per / (ve_cyto + 1e-6) if ve_cyto > 0 else np.nan
-        f_ratio = f_per / (f_cyto + 1e-6) if f_cyto > 0 else np.nan
+        ve_per = np.mean(ve_cadherin[periphery]) if np.any(periphery) else 0
+        ve_cyto = np.mean(ve_cadherin[interior]) if np.any(interior) else 1
+        f_per = np.mean(f_actin[periphery]) if np.any(periphery) else 0
+        f_cyto = np.mean(f_actin[interior]) if np.any(interior) else 1
+        dapi_mean = np.mean(dapi[region.coords[:, 0], region.coords[:, 1]]) if region.coords.size else 0
+        ve_ratio = ve_per / (ve_cyto + 1e-6)
+        f_ratio = f_per / (f_cyto + 1e-6)
         column_id = int(region.centroid[1] // (img.shape[1] / n_columns))
         column_label = column_labels[column_id] if column_labels and column_id < len(column_labels) else str(column_id)
 
