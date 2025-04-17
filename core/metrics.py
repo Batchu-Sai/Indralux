@@ -1,8 +1,8 @@
-
 import pandas as pd
 import numpy as np
 from skimage.measure import regionprops
 from skimage.morphology import convex_hull_image
+import cv2
 
 def add_morphological_metrics(df, labels):
     regions = regionprops(labels)
@@ -28,8 +28,6 @@ def add_extended_metrics(df, labels):
         df['Periphery_Breaks'] / (df['Periphery_Breaks'].max() + 1e-6)
     )
     return df
-
-import cv2
 
 def add_ve_snr(df, labels, ve_channel, pad=10):
     snr_list = []
