@@ -1,24 +1,18 @@
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import tempfile, os, cv2, sys
 
-# Enable parent directory access
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-# Core logic
 from core.processor import process_with_breaks
 from core.metrics import add_morphological_metrics, add_extended_metrics, add_ve_snr
 from core.overlay import draw_colored_overlay_with_cv2
 from core.plotting import plot_metric_trends_manual
 from core.indralux_stats import run_statistical_tests
-
-# Utilities
 from utils.pptx_extract import extract_clean_images_from_pptx
 from utils.column_split_uniform import split_into_n_columns
 
-# Page Configuration
 st.set_page_config(page_title="Indralux", page_icon="assets/favicon_32.png", layout="wide")
 st.sidebar.image("assets/indralux_final_logo.png", width=240)
 st.sidebar.title("Indralux: Quantifying Endothelial Disruption")
@@ -27,10 +21,12 @@ if "batch_results" not in st.session_state:
     st.session_state.batch_results = {}
 
 mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analysis"])
+default_markers = {"F-actin": 0, "VE-cadherin": 1, "DAPI": 2}
+marker_input = st.sidebar.text_input("Marker channels (e.g. F-actin=0,VE-cadherin=1,DAPI=2)", value="F-actin=0,VE-cadherin=1,DAPI=2")
+marker_map = {k.strip(): int(v.strip()) for k, v in (pair.split("=") for pair in marker_input.split(","))}
 
 if mode == "Batch PPTX Upload":
     pptx_file = st.sidebar.file_uploader("Upload .pptx file", type=["pptx"])
-
     if pptx_file:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as tmp:
             tmp.write(pptx_file.read())
@@ -43,7 +39,7 @@ if mode == "Batch PPTX Upload":
         if clean_imgs:
             selected = st.selectbox("Select slide image to analyze:", clean_imgs)
             img_path = os.path.join(extract_dir, selected)
-            st.image(img_path, caption=selected, width=800)
+            st.image(img_path, caption=selected, use_container_width=True)
 
             label_key = f"labels_{selected}"
             run_key = f"run_{selected}"
@@ -69,14 +65,14 @@ if mode == "Batch PPTX Upload":
                 for idx, col_path in enumerate(col_paths):
                     try:
                         label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
-                        df, labels, img_rgb = process_with_breaks(col_path, n_columns=1, column_labels=[label])
+                        df, labels, img_rgb = process_with_breaks(col_path, n_columns=1, column_labels=[label], marker_map=marker_map)
                         morph = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
                         morph = morph[[col for col in morph.columns if col not in df.columns or col == "Cell_ID"]]
                         df = pd.merge(df, morph, on="Cell_ID", how="left")
                         ext = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
                         ext = ext[[col for col in ext.columns if col not in df.columns or col == "Cell_ID"]]
                         df = pd.merge(df, ext, on="Cell_ID", how="left")
-                        df = add_ve_snr(df, labels, img_rgb[:, :, 1])
+                        df = add_ve_snr(df, labels, img_rgb[:, :, marker_map.get("VE-cadherin", 1)])
                         df["Slide_Image"] = selected
                         df["Panel_Label"] = label
                         per_col_data.append(df)
@@ -96,7 +92,7 @@ if mode == "Batch PPTX Upload":
                     if chosen_metrics:
                         fig_path = os.path.join(tempfile.gettempdir(), f"plot_{selected}.png")
                         plot_metric_trends_manual(result_df, chosen_metrics, fig_path)
-                        st.image(fig_path, caption="Metric Trends", width=800)
+                        st.image(fig_path, caption="Metric Trends", use_container_width=True)
 
                     safe_stat_defaults = [m for m in ["VE_Ratio", "Disruption_Index"] if m in metric_cols]
                     stat_cols = st.multiselect("Run stats on:", metric_cols, default=safe_stat_defaults, key=f"stats_{selected}")
@@ -116,16 +112,16 @@ elif mode == "Single Image Analysis":
             tmp.write(uploaded_file.read())
             img_path = tmp.name
 
-        st.image(img_path, caption="Uploaded Image", width=800)
+        st.image(img_path, caption="Uploaded Image", use_container_width=True)
 
         with st.spinner("Processing image..."):
             try:
-                df, labels, img_rgb = process_with_breaks(img_path, n_columns=len(column_labels), column_labels=column_labels)
+                df, labels, img_rgb = process_with_breaks(img_path, n_columns=len(column_labels), column_labels=column_labels, marker_map=marker_map)
                 morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
                 ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
                 df = pd.merge(df, morph_df, on="Cell_ID", how="left")
                 df = pd.merge(df, ext_df, on="Cell_ID", how="left")
-                df = add_ve_snr(df, labels, img_rgb[:, :, 1])
+                df = add_ve_snr(df, labels, img_rgb[:, :, marker_map.get("VE-cadherin", 1)])
                 st.success("Analysis complete.")
             except Exception as e:
                 st.error(f"Failed to process image: {e}")
@@ -137,7 +133,7 @@ elif mode == "Single Image Analysis":
             overlay = draw_colored_overlay_with_cv2(img_rgb, labels, df)
             overlay_path = os.path.join(tempfile.gettempdir(), "overlay.png")
             cv2.imwrite(overlay_path, cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR))
-            st.image(overlay_path, caption="Overlay", width=800)
+            st.image(overlay_path, caption="Overlay", use_container_width=True)
 
         if st.checkbox("Plot trends"):
             metrics = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
@@ -149,7 +145,7 @@ elif mode == "Single Image Analysis":
             elif selected_metrics:
                 fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
                 plot_metric_trends_manual(df, selected_metrics, fig_path)
-                st.image(fig_path, caption="Metric Trends", width=800)
+                st.image(fig_path, caption="Metric Trends", use_container_width=True)
 
         if st.checkbox("Run statistical tests"):
             numeric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
@@ -157,3 +153,4 @@ elif mode == "Single Image Analysis":
             if stat_metrics and "Column_Label" in df.columns:
                 result_df = run_statistical_tests(df[["Column_Label"] + stat_metrics])
                 st.dataframe(result_df)
+
