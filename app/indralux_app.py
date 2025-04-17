@@ -29,9 +29,6 @@ if "batch_results" not in st.session_state:
 # Sidebar Mode Switch
 mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analysis"])
 
-# Sidebar Mode Switch
-mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analysis"])
-
 # Channel marker configuration with helpful tooltips
 marker_f1 = st.sidebar.selectbox(
     "Marker in Channel 1 (Red)",
