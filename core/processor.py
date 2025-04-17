@@ -5,22 +5,19 @@ from skimage import filters, feature, segmentation, measure, morphology
 from scipy import ndimage as ndi
 import pandas as pd
 
-def process_with_breaks(img_path, n_columns=1, column_labels=None):
+def process_with_breaks(img_path, n_columns=1, column_labels=None, marker_channels=None):
     img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
 
-    if img.ndim == 2:
+    if len(img.shape) == 2 or img.shape[2] == 1:
         img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    elif img.shape[2] == 4:
-        img = img[:, :, :3]
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        channels = {"ve": 0, "f": 0, "dapi": 0}
     else:
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        channels = marker_channels or {"ve": 1, "f": 0, "dapi": 2}
 
-    channels = img_rgb.shape[2]
-
-    f_actin = img_rgb[:, :, 0] if channels >= 1 else np.zeros_like(img_rgb[:, :, 0])
-    ve_cadherin = img_rgb[:, :, 1] if channels >= 2 else np.zeros_like(img_rgb[:, :, 0])
-    dapi = img_rgb[:, :, 2] if channels >= 3 else np.zeros_like(img_rgb[:, :, 0])
+    f_actin = img_rgb[:, :, channels["f"]]
+    ve_cadherin = img_rgb[:, :, channels["ve"]]
+    dapi = img_rgb[:, :, channels["dapi"]]
 
     actin_thresh = filters.threshold_otsu(f_actin)
     borders = f_actin > actin_thresh
@@ -40,37 +37,27 @@ def process_with_breaks(img_path, n_columns=1, column_labels=None):
 
     results = []
     for region in measure.regionprops(segmentation_labels, intensity_image=ve_cadherin):
-        if region.area < 100:
-            continue
-        full_mask = segmentation_labels == region.label
-        interior = morphology.binary_erosion(full_mask, morphology.disk(3))
-        periphery = full_mask ^ interior
-
-        ve_per = np.mean(ve_cadherin[periphery]) if np.any(periphery) else 0
-        ve_cyto = np.mean(ve_cadherin[interior]) if np.any(interior) else 1
-        f_per = np.mean(f_actin[periphery]) if np.any(periphery) else 0
-        f_cyto = np.mean(f_actin[interior]) if np.any(interior) else 1
-        dapi_mean = np.mean(dapi[region.coords[:, 0], region.coords[:, 1]]) if region.coords.size else 0
-        ve_ratio = ve_per / (ve_cyto + 1e-6)
-        f_ratio = f_per / (f_cyto + 1e-6)
-        column_id = int(region.centroid[1] // (img.shape[1] / n_columns))
-        column_label = column_labels[column_id] if column_labels and column_id < len(column_labels) else str(column_id)
-
+        if region.area < 100: continue
+        mask = segmentation_labels == region.label
+        interior = morphology.binary_erosion(mask, morphology.disk(3))
+        periphery = mask ^ interior
         skel = morphology.skeletonize(periphery)
         n_breaks = measure.label(skel).max()
+        column_id = int(region.centroid[1] // (img.shape[1] / n_columns))
+        column_label = column_labels[column_id] if column_labels and column_id < len(column_labels) else str(column_id)
 
         results.append({
             "Cell_ID": region.label,
             "Centroid_X": region.centroid[1],
             "Column_ID": column_id,
             "Column_Label": column_label,
-            "Periphery_Intensity_VE": ve_per,
-            "Cytoplasm_Intensity_VE": ve_cyto,
-            "VE_Ratio": ve_ratio,
-            "Periphery_Intensity_F": f_per,
-            "Cytoplasm_Intensity_F": f_cyto,
-            "F_Ratio": f_ratio,
-            "DAPI_Intensity": dapi_mean,
+            "Periphery_Intensity_VE": np.mean(ve_cadherin[periphery]),
+            "Cytoplasm_Intensity_VE": np.mean(ve_cadherin[interior]),
+            "VE_Ratio": np.mean(ve_cadherin[periphery]) / (np.mean(ve_cadherin[interior]) + 1e-6),
+            "Periphery_Intensity_F": np.mean(f_actin[periphery]),
+            "Cytoplasm_Intensity_F": np.mean(f_actin[interior]),
+            "F_Ratio": np.mean(f_actin[periphery]) / (np.mean(f_actin[interior]) + 1e-6),
+            "DAPI_Intensity": np.mean(dapi[region.coords[:, 0], region.coords[:, 1]]),
             "Periphery_Breaks": n_breaks
         })
 
