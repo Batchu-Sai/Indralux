@@ -7,11 +7,18 @@ from scipy import ndimage as ndi
 from skimage.morphology import skeletonize
 from skimage.measure import label
 
+# —————————————————————————————
+# Fragmentation via Skeletonization
+# —————————————————————————————
 def compute_junction_fragmentation(periphery):
     skel = skeletonize(periphery)
     return label(skel).max()
 
-def extract_cell_metrics(cell_id, mask, ve_cadherin, f_actin, dapi, nuclei_mask, column_id, column_label, centroid_x, global_ve=None, global_f=None):
+# —————————————————————————————
+# Per-cell metric extraction
+# —————————————————————————————
+def extract_cell_metrics(cell_id, mask, ve_cadherin, f_actin, dapi, nuclei_mask,
+                         column_id, column_label, centroid_x, global_ve=None, global_f=None):
     interior = morphology.binary_erosion(mask, morphology.disk(3))
     periphery = mask ^ interior
     nucleus_overlap = nuclei_mask & mask
@@ -51,14 +58,31 @@ def extract_cell_metrics(cell_id, mask, ve_cadherin, f_actin, dapi, nuclei_mask,
         "F_Global_Ratio": f_global_ratio
     }
 
-def process_with_breaks(img_path, n_columns=1, column_labels=None):
-    img = cv2.imread(img_path)
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+# —————————————————————————————
+# Wrapper for full image processing
+# —————————————————————————————
+def process_with_breaks(img_path, n_columns=1, column_labels=None, channel_map=None):
+    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
 
-    f_actin = img_rgb[:, :, 0]
-    ve_cadherin = img_rgb[:, :, 1]
-    dapi = img_rgb[:, :, 2]
+    is_gray = len(img.shape) == 2 or (len(img.shape) == 3 and img.shape[2] == 1)
+    if is_gray:
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else np.repeat(img, 3, axis=2)
+    else:
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
+    # Default fallback
+    if channel_map is None:
+        channel_map = {"F-Actin": 0, "VE-Cadherin": 1, "DAPI": 2}
+
+    def safe_channel(marker_name):
+        ch = channel_map.get(marker_name, None)
+        return img_rgb[:, :, ch] if ch is not None and ch < img_rgb.shape[2] else np.zeros_like(img_rgb[:, :, 0])
+
+    f_actin = safe_channel("F-Actin")
+    ve_cadherin = safe_channel("VE-Cadherin")
+    dapi = safe_channel("DAPI")
+
+    # Segmentation
     actin_thresh = filters.threshold_otsu(f_actin)
     borders = f_actin > actin_thresh
 
@@ -104,3 +128,4 @@ def process_with_breaks(img_path, n_columns=1, column_labels=None):
 
     df = pd.DataFrame(results)
     return df, segmentation_labels, img_rgb
+
