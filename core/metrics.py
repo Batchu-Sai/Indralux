@@ -1,8 +1,10 @@
+# core/metrics.py
+
 import pandas as pd
 import numpy as np
+import cv2
 from skimage.measure import regionprops
 from skimage.morphology import convex_hull_image
-import cv2
 
 def add_morphological_metrics(df, labels):
     regions = regionprops(labels)
@@ -22,10 +24,10 @@ def add_morphological_metrics(df, labels):
 
 def add_extended_metrics(df, labels):
     df['Disruption_Index'] = (
-        1 / (df['VE_Ratio'] + 1e-6) +
-        (1 - df['F_Ratio']) +
+        1 / (df['VE_Intensity_Ratio'] + 1e-6) +
+        (1 - df['F_Intensity_Ratio']) +
         df['DAPI_Intensity'] / (df['DAPI_Intensity'].max() + 1e-6) +
-        df['Periphery_Breaks'] / (df['Periphery_Breaks'].max() + 1e-6)
+        df['N_Periphery_Breaks'] / (df['N_Periphery_Breaks'].max() + 1e-6)
     )
     return df
 
@@ -40,6 +42,7 @@ def add_ve_snr(df, labels, ve_channel, pad=10):
         bg_vals = ve_channel[background]
         if len(bg_vals) == 0 or np.std(bg_vals) == 0:
             snr = None
+            print(f"⚠️ Cell {region.Cell_ID}: Cannot compute VE_SNR (no background or variance).")
         else:
             periphery = mask ^ cv2.erode(mask.astype(np.uint8), None)
             signal = ve_channel[periphery]
