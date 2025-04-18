@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import tempfile, os, cv2, sys
+from PIL import Image
 
 # Enable parent directory access
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -17,15 +18,6 @@ from core.indralux_stats import run_statistical_tests
 from utils.pptx_extract import extract_clean_images_from_pptx
 from utils.column_split_uniform import split_into_n_columns
 
-def sanitize_image_for_cv2(uploaded_file):
-    from PIL import Image
-    import tempfile
-
-    img_pil = Image.open(uploaded_file).convert("RGB")
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
-        img_pil.save(tmp.name, format="PNG")
-        return tmp.name
-
 # Page Configuration
 st.set_page_config(page_title="Fluorescent microscopy image analyzer", layout="wide")
 
@@ -40,9 +32,9 @@ mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analy
 channel_mode = st.sidebar.radio("Image Type", ["Color (RGB)", "Grayscale"], help="Select 'Grayscale' for single-channel images.", key="channel_mode")
 
 if channel_mode == "Color (RGB)":
-    marker_f1 = st.sidebar.selectbox("Marker in Channel 1 (Red)", ["F-Actin", "VE-Cadherin", "DAPI", "Other"], index=0, help="Using standard markers? Leave as is.", key="marker_red")
-    marker_f2 = st.sidebar.selectbox("Marker in Channel 2 (Green)", ["VE-Cadherin", "F-Actin", "DAPI", "Other"], index=0, help="Using standard markers? Leave as is.", key="marker_green")
-    marker_f3 = st.sidebar.selectbox("Marker in Channel 3 (Blue)", ["DAPI", "F-Actin", "VE-Cadherin", "Other"], index=0, help="Using standard markers? Leave as is.", key="marker_blue")
+    marker_f1 = st.sidebar.selectbox("Marker in Channel 1 (Red)", ["F-Actin", "VE-Cadherin", "DAPI", "Other"], index=0, key="marker_red")
+    marker_f2 = st.sidebar.selectbox("Marker in Channel 2 (Green)", ["VE-Cadherin", "F-Actin", "DAPI", "Other"], index=0, key="marker_green")
+    marker_f3 = st.sidebar.selectbox("Marker in Channel 3 (Blue)", ["DAPI", "F-Actin", "VE-Cadherin", "Other"], index=0, key="marker_blue")
     marker_channel_map = {marker_f1: 0, marker_f2: 1, marker_f3: 2}
 else:
     marker_channel_map = {"F-Actin": 0, "VE-Cadherin": 0, "DAPI": 0}
@@ -63,7 +55,17 @@ if mode == "Batch PPTX Upload":
         if clean_imgs:
             selected = st.selectbox("Select slide image to analyze:", clean_imgs)
             img_path = os.path.join(extract_dir, selected)
-            st.image(img_path, caption=selected, use_column_width=True)
+            try:
+                img_pil = Image.open(img_path).convert("RGB")
+                img_pil.save(img_path)
+                img_test = cv2.imread(str(img_path))
+                if img_test is None:
+                    raise ValueError(f"❌ OpenCV cannot read image: {img_path}")
+                st.success(f"✅ Loaded image: {img_path}, shape: {img_test.shape}")
+                st.image(img_path, caption=selected, use_column_width=True)
+            except Exception as e:
+                st.error(f"Failed to load image: {e}")
+                st.stop()
 
             label_key = f"labels_{selected}"
             run_key = f"run_{selected}"
@@ -88,10 +90,9 @@ if mode == "Batch PPTX Upload":
                 per_col_data = []
                 for idx, col_path in enumerate(col_paths):
                     try:
-                        if not os.path.exists(col_path):
-                            raise FileNotFoundError(f"Panel image not found: {col_path}")
+                        Image.open(col_path).convert("RGB").save(col_path)
                         label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
-                        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
+                        img = cv2.imread(str(col_path), cv2.IMREAD_UNCHANGED)
                         if img is None:
                             raise ValueError(f"cv2 could not load the image at: {col_path}")
 
@@ -108,11 +109,7 @@ if mode == "Batch PPTX Upload":
                         df = pd.merge(df, morph, on="Cell_ID", how="left")
                         df = pd.merge(df, ext, on="Cell_ID", how="left")
                         ve_ch = channel_map.get("VE-Cadherin", None)
-                        if ve_ch is not None:
-                            df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch])
-                        else:
-                            df["VE_SNR"] = None
-
+                        df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch]) if ve_ch is not None else df.assign(VE_SNR=None)
                         df["Slide_Image"] = selected
                         df["Panel_Label"] = label
                         per_col_data.append(df)
@@ -137,14 +134,18 @@ elif mode == "Single Image Analysis":
             tmp.write(uploaded_file.read())
             img_path = tmp.name
 
-        st.image(img_path, caption="Uploaded Image", use_column_width=True)
+        try:
+            Image.open(img_path).convert("RGB").save(img_path)
+            img = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)
+            if img is None:
+                raise ValueError(f"cv2 could not load the image at: {img_path}")
+            st.image(img_path, caption="Uploaded Image", use_column_width=True)
+        except Exception as e:
+            st.error(f"Failed to load image: {e}")
+            st.stop()
 
         with st.spinner("Processing image..."):
             try:
-                img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
-                if img is None:
-                    raise ValueError(f"cv2 could not load the image at: {img_path}")
-
                 if channel_mode == "Grayscale":
                     img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else img
                     channel_map = {"F-Actin": 0, "VE-Cadherin": 0, "DAPI": 0}
@@ -158,10 +159,7 @@ elif mode == "Single Image Analysis":
                 df = pd.merge(df, morph_df, on="Cell_ID", how="left")
                 df = pd.merge(df, ext_df, on="Cell_ID", how="left")
                 ve_ch = channel_map.get("VE-Cadherin", None)
-                if ve_ch is not None:
-                    df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch])
-                else:
-                    df["VE_SNR"] = None
+                df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch]) if ve_ch is not None else df.assign(VE_SNR=None)
 
                 st.success("Analysis complete.")
             except Exception as e:
