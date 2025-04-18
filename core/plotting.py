@@ -6,6 +6,9 @@ import pandas as pd
 import scikit_posthocs as sp
 from scipy.stats import kruskal
 
+# ————————————————————————————————
+# 📈 Basic Trends Over Time or Columns
+# ————————————————————————————————
 def plot_metric_trends_manual(df, metrics, save_path):
     if "Column_Label" not in df.columns:
         raise ValueError("Column_Label is missing from the DataFrame.")
@@ -25,6 +28,10 @@ def plot_metric_trends_manual(df, metrics, save_path):
     plt.savefig(save_path)
     plt.close()
 
+
+# ———————————————————————————————————
+# 📊 Spatial Disruption Map w/ Stats
+# ———————————————————————————————————
 def plot_spatial_disruption_map(df, save_path, test="kruskal", posthoc="dunn", show_sig=False):
     df = df[df['VE_Ratio'].notnull() & df['Column_Label'].notnull()]
 
