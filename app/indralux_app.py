@@ -183,4 +183,3 @@ elif mode == "Single Image Analysis":
 
          st.success("Analysis complete.")
          st.dataframe(df.head())
-
