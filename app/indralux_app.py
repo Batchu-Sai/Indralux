@@ -28,8 +28,8 @@ mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analy
 
 # Marker Channel Mapping (customizable in future)
 marker_f1 = st.sidebar.selectbox("Marker in Channel 1 (Red)", ["F-Actin", "VE-Cadherin", "DAPI", "Other"], index=0)
-marker_f2 = st.sidebar.selectbox("Marker in Channel 2 (Green)", ["VE-Cadherin", "F-Actin", "DAPI", "Other"], index=1)
-marker_f3 = st.sidebar.selectbox("Marker in Channel 3 (Blue)", ["DAPI", "F-Actin", "VE-Cadherin", "Other"], index=2)
+marker_f2 = st.sidebar.selectbox("Marker in Channel 2 (Green)", ["VE-Cadherin", "F-Actin", "DAPI", "Other"], index=0)
+marker_f3 = st.sidebar.selectbox("Marker in Channel 3 (Blue)", ["DAPI", "F-Actin", "VE-Cadherin", "Other"], index=0)
 marker_channel_map = {marker_f1: 0, marker_f2: 1, marker_f3: 2}
 
 # ──────────────── BATCH MODE ────────────────
