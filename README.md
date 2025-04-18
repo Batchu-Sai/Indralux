@@ -13,9 +13,7 @@ A lightweight image analysis tool for fluorescence microscopy data, built as a s
 
 <p align="center">
   <a href="https://fluorescence-image-analyzer.streamlit.app/">Live App</a> •
-  <a href="https://github.com/Batchu-Sai/fluorescence-image-analyzer">GitHub Repo</a> •
   <a href="docs/metrics_table.md">Full Metrics Table</a> •
-  <a href="#how-it-works">How It Works</a>
 </p>
 
 ---
