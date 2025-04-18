@@ -1,3 +1,4 @@
+import io
 from pptx import Presentation
 import os
 from PIL import Image
@@ -24,9 +25,7 @@ def extract_clean_images_from_pptx(pptx_path, output_dir):
             try:
                 img_data = io.BytesIO(image.blob)
                 with Image.open(img_data) as im:
-                    if im.width < 100 or im.height < 100:
-                        continue
-                    im.save(path)
+                                        im.save(path)
                     extracted.append(name)
             except Exception as e:
                 print(f"Skipping image: {e}")
