@@ -126,9 +126,8 @@ if st.session_state.batch_results:
     st.download_button("📦 Download All Metrics CSV", open(full_csv, "rb"), "indralux_batch_all.csv")
 
 # ─── SINGLE IMAGE ANALYSIS ──────────────────────────────
-elif mode == "Single Image Analysis":
-uploaded_file = st.sidebar.file_uploader("Upload microscopy image", type=["png", "jpg", "jpeg"])
-    
+st.markdown("Upload Single Microscopy Image")
+uploaded_file = st.file_uploader("Upload a fluorescent microscopy image", type=["png", "jpg", "jpeg"])
 if uploaded_file:
     column_labels = st.text_input("Enter column labels:", "Control,5,15,30").split(",")
 
