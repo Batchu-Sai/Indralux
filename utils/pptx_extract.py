@@ -28,4 +28,3 @@ def extract_clean_images_from_pptx(pptx_path, output_dir):
                     print(f"[Indralux] Failed to convert image from slide {slide_idx}: {e}")
     return saved
 
-
