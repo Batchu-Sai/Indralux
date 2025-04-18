@@ -206,23 +206,45 @@ if mode == "Single Image Analysis":
 
 
 
+
+
+
+
 # ─── METRIC SELECTION & PLOTTING ──────────────────────────────
-if f"results_{selected}" in st.session_state:
-    df_list = st.session_state[f"results_{selected}"]
-    full_df = pd.concat(df_list, ignore_index=True)
+if mode == "Batch PPTX Upload":
+    if 'pptx_file' in locals() and pptx_file and f"results_{selected}" in st.session_state:
+        df_list = st.session_state[f"results_{selected}"]
+        full_df = pd.concat(df_list, ignore_index=True)
 
-    numeric_cols = full_df.select_dtypes(include="number").columns.tolist()
-    excluded = ["Cell_ID"]
-    metric_options = [col for col in numeric_cols if col not in excluded]
+        numeric_cols = full_df.select_dtypes(include="number").columns.tolist()
+        excluded = ["Cell_ID"]
+        metric_options = [col for col in numeric_cols if col not in excluded]
 
-    selected_metric = st.selectbox("Select metric to graph or run stats on:", metric_options)
+        selected_metric = st.selectbox("Select metric to graph or run stats on:", metric_options)
 
-    if selected_metric:
-        st.line_chart(full_df.groupby("Panel_Label")[selected_metric].mean())
+        if selected_metric:
+            st.line_chart(full_df.groupby("Panel_Label")[selected_metric].mean())
 
-        # Optional: Run stats
-        if st.button("Run stats on selected metric"):
-            st.write("Running statistical tests...")
-            stat_result = run_statistical_tests(full_df, metric=selected_metric)
-            st.write(stat_result)
+            if st.button("Run stats on selected metric"):
+                st.write("Running statistical tests...")
+                stat_result = run_statistical_tests(full_df, metric=selected_metric)
+                st.write(stat_result)
 
+elif mode == "Single Image Analysis":
+    if "results_single" in st.session_state:
+        df_list = st.session_state["results_single"]
+        full_df = pd.concat(df_list, ignore_index=True)
+
+        numeric_cols = full_df.select_dtypes(include="number").columns.tolist()
+        excluded = ["Cell_ID"]
+        metric_options = [col for col in numeric_cols if col not in excluded]
+
+        selected_metric = st.selectbox("Select metric to graph or run stats on (Single Image):", metric_options)
+
+        if selected_metric:
+            st.line_chart(full_df.groupby("Panel_Label")[selected_metric].mean())
+
+            if st.button("Run stats on selected metric (Single Image)"):
+                st.write("Running statistical tests...")
+                stat_result = run_statistical_tests(full_df, metric=selected_metric)
+                st.write(stat_result)
