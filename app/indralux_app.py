@@ -74,20 +74,33 @@ if mode == "Batch PPTX Upload":
                     try:
                         label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
                         df, labels, img_rgb = process_with_breaks(col_path, n_columns=1, column_labels=[label])
-                        morph = add_morphological_metrics(df, labels).drop(columns=["Column_Label", "Slide_Image", "Panel_Label"], errors="ignore")
-                        morph = morph[[col for col in morph.columns if col not in df.columns or col == "Cell_ID"]]
-                        df = pd.merge(df, morph, on="Cell_ID", how="left")
 
-                        ext = add_extended_metrics(df, labels).drop(columns=["Column_Label", "Slide_Image", "Panel_Label"], errors="ignore")
-                        ext = ext[[col for col in ext.columns if col not in df.columns or col == "Cell_ID"]]
-                        df = pd.merge(df, ext, on="Cell_ID", how="left")
+                        # --- Morphological Metrics ---
+                        morph_df = add_morphological_metrics(df, labels)
+                        morph_df = morph_df.drop(columns=["Column_Label", "Slide_Image", "Panel_Label"], errors="ignore")
 
+                        # Remove overlapping columns except the join key
+                        morph_df = morph_df[[col for col in morph_df.columns if col not in df.columns or col == "Cell_ID"]]
+                        df = pd.merge(df, morph_df, on="Cell_ID", how="left")
+                    
+                        # --- Extended Metrics ---
+                        ext_df = add_extended_metrics(df, labels)
+                        ext_df = ext_df.drop(columns=["Column_Label", "Slide_Image", "Panel_Label"], errors="ignore")
+                        ext_df = ext_df[[col for col in ext_df.columns if col not in df.columns or col == "Cell_ID"]]
+                        df = pd.merge(df, ext_df, on="Cell_ID", how="left")
+                    
+                        # --- VE SNR ---
                         df = add_ve_snr(df, labels, img_rgb[:, :, 1])
+                    
+                        # Annotate
                         df["Slide_Image"] = selected
                         df["Panel_Label"] = label
+                    
                         per_col_data.append(df)
+                    
                     except Exception as e:
-                        st.warning(f"⚠️ {col_path} failed: {e}")
+                        st.warning(f"⚠️ Failed to process column {idx + 1} of {selected}: {e}")
+                    
 
                 if per_col_data:
                     result_df = pd.concat(per_col_data, ignore_index=True)
@@ -138,16 +151,22 @@ if mode == "Single Image Analysis":
         st.image(img_path, caption="Uploaded Image", use_column_width=True)
         with st.spinner("Processing..."):
             try:
-                df, labels, img_rgb = process_with_breaks(img_path, len(column_labels), column_labels)
-                morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-                ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-                df = pd.merge(df, morph_df, on="Cell_ID", how="left")
-                df = pd.merge(df, ext_df, on="Cell_ID", how="left")
-                df = add_ve_snr(df, labels, img_rgb[:, :, 1])
-                st.success("✅ Done.")
-            except Exception as e:
-                st.error(f"❌ {e}")
-                st.stop()
+            df, labels, img_rgb = process_with_breaks(img_path, n_columns=len(column_labels), column_labels=column_labels)
+
+            morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
+            morph_df = morph_df[[col for col in morph_df.columns if col not in df.columns or col == "Cell_ID"]]
+            df = pd.merge(df, morph_df, on="Cell_ID", how="left")
+
+            ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
+            ext_df = ext_df[[col for col in ext_df.columns if col not in df.columns or col == "Cell_ID"]]
+            df = pd.merge(df, ext_df, on="Cell_ID", how="left")
+
+            df = add_ve_snr(df, labels, img_rgb[:, :, 1])
+
+            st.success("Segmentation and metrics complete.")
+        except Exception as e:
+            st.error(f"Failed to process image: {e}")
+            st.stop()
         
         st.dataframe(df.head())
         if st.checkbox("Overlay", key='cb_overlay'):
