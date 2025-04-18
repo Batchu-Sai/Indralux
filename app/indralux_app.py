@@ -19,54 +19,32 @@ from utils.column_split_uniform import split_into_n_columns
 
 # Page Configuration
 st.set_page_config(page_title="Fluorescent microscopy image analyzer", layout="wide")
-#st.sidebar.image("assets/indralux_final_logo.png", width=240)
-#st.sidebar.title("Fluorescent microscopy image analyzer")
 
-# Results tracking
+# Session State
 if "batch_results" not in st.session_state:
     st.session_state.batch_results = {}
 
-# Sidebar Mode Switch
+# Mode Selection
 mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analysis"], key="mode_switch")
 
-# Channel marker configuration with tooltips
-marker_f1 = st.sidebar.selectbox(
-    "Marker in Channel 1 (Red)",
-    ["F-Actin", "VE-Cadherin", "DAPI", "Other"],
-    index=0,
-    help="Using standard markers? Leave as is. For custom stains (e.g., FITC, Alexa Fluor), specify mapping manually.",
-    key="marker_red"
-)
+# Marker Selection
+marker_f1 = st.sidebar.selectbox("Marker in Channel 1 (Red)", ["F-Actin", "VE-Cadherin", "DAPI", "Other"], index=0, help="Using standard markers? Leave as is.", key="marker_red")
+marker_f2 = st.sidebar.selectbox("Marker in Channel 2 (Green)", ["VE-Cadherin", "F-Actin", "DAPI", "Other"], index=0, help="Using standard markers? Leave as is.", key="marker_green")
+marker_f3 = st.sidebar.selectbox("Marker in Channel 3 (Blue)", ["DAPI", "F-Actin", "VE-Cadherin", "Other"], index=0, help="Using standard markers? Leave as is.", key="marker_blue")
 
-marker_f2 = st.sidebar.selectbox(
-    "Marker in Channel 2 (Green)",
-    ["VE-Cadherin", "F-Actin", "DAPI", "Other"],
-    index=0,
-    help="Using standard markers? Leave as is. For custom stains (e.g., FITC, Alexa Fluor), specify mapping manually.",
-    key="marker_green"
-)
+# Image Type
+channel_mode = st.sidebar.radio("Image Type", ["Color (RGB)", "Grayscale"], help="Select 'Grayscale' for single-channel images.", key="channel_mode")
 
-marker_f3 = st.sidebar.selectbox(
-    "Marker in Channel 3 (Blue)",
-    ["DAPI", "F-Actin", "VE-Cadherin", "Other"],
-    index=0,
-    help="Using standard markers? Leave as is. For custom stains (e.g., FITC, Alexa Fluor), specify mapping manually.",
-    key="marker_blue"
-)
-
-# Build marker-channel mapping
+# Marker Mapping
 marker_channel_map = {
     marker_f1: 0,
     marker_f2: 1,
     marker_f3: 2
 }
-
-# Just for debugging / confirmation
 st.sidebar.markdown("**Assigned Channels:**")
 for marker, channel in marker_channel_map.items():
     if marker != "Other":
         st.sidebar.markdown(f"- **{marker}** → Channel {channel}")
-
 
 # Batch Mode
 if mode == "Batch PPTX Upload":
@@ -110,14 +88,26 @@ if mode == "Batch PPTX Upload":
                 for idx, col_path in enumerate(col_paths):
                     try:
                         label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
-                        df, labels, img_rgb = process_with_breaks(col_path, n_columns=1, column_labels=[label])
+                        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
+                        is_gray = channel_mode == "Grayscale"
+                        if is_gray:
+                            img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else img
+                            channel_map = {"VE-Cadherin": 0, "F-Actin": 0, "DAPI": 0}
+                        else:
+                            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                            channel_map = {k: v for k, v in marker_channel_map.items() if k != "Other"}
+
+                        df, labels, _ = process_with_breaks(img_rgb, n_columns=1, column_labels=[label], channel_map=channel_map)
                         morph = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-                        morph = morph[[col for col in morph.columns if col not in df.columns or col == "Cell_ID"]]
-                        df = pd.merge(df, morph, on="Cell_ID", how="left")
                         ext = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-                        ext = ext[[col for col in ext.columns if col not in df.columns or col == "Cell_ID"]]
+                        df = pd.merge(df, morph, on="Cell_ID", how="left")
                         df = pd.merge(df, ext, on="Cell_ID", how="left")
-                        df = add_ve_snr(df, labels, img_rgb[:, :, 1])  # Still assumes VE is in green
+                        ve_ch = channel_map.get("VE-Cadherin", None)
+                        if ve_ch is not None:
+                            df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch])
+                        else:
+                            df["VE_SNR"] = None
+
                         df["Slide_Image"] = selected
                         df["Panel_Label"] = label
                         per_col_data.append(df)
@@ -131,17 +121,13 @@ if mode == "Batch PPTX Upload":
                     st.dataframe(result_df.head())
 
                     metric_cols = [col for col in result_df.columns if result_df[col].dtype in ['float64', 'int64']]
-                    safe_defaults = [m for m in ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"] if m in metric_cols]
-                    chosen_metrics = st.multiselect("Plot metrics:", metric_cols, default=safe_defaults, key=f"plot_{selected}")
-
+                    chosen_metrics = st.multiselect("Plot metrics:", metric_cols, default=[m for m in ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"] if m in metric_cols], key=f"plot_{selected}")
                     if chosen_metrics:
                         fig_path = os.path.join(tempfile.gettempdir(), f"plot_{selected}.png")
                         plot_metric_trends_manual(result_df, chosen_metrics, fig_path)
                         st.image(fig_path, caption="Metric Trends", use_column_width=True)
 
-                    safe_stat_defaults = [m for m in ["VE_Ratio", "Disruption_Index"] if m in metric_cols]
-                    stat_cols = st.multiselect("Run stats on:", metric_cols, default=safe_stat_defaults, key=f"stats_{selected}")
-
+                    stat_cols = st.multiselect("Run stats on:", metric_cols, default=[m for m in ["VE_Ratio", "Disruption_Index"] if m in metric_cols], key=f"stats_{selected}")
                     if stat_cols:
                         stats_df = run_statistical_tests(result_df[["Column_Label"] + stat_cols])
                         st.dataframe(stats_df)
@@ -162,12 +148,26 @@ elif mode == "Single Image Analysis":
 
         with st.spinner("Processing image..."):
             try:
-                df, labels, img_rgb = process_with_breaks(img_path, n_columns=len(column_labels), column_labels=column_labels)
+                img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+                is_gray = channel_mode == "Grayscale"
+                if is_gray:
+                    img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else img
+                    channel_map = {"VE-Cadherin": 0, "F-Actin": 0, "DAPI": 0}
+                else:
+                    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                    channel_map = {k: v for k, v in marker_channel_map.items() if k != "Other"}
+
+                df, labels, _ = process_with_breaks(img_rgb, n_columns=len(column_labels), column_labels=column_labels, channel_map=channel_map)
                 morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
                 ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
                 df = pd.merge(df, morph_df, on="Cell_ID", how="left")
                 df = pd.merge(df, ext_df, on="Cell_ID", how="left")
-                df = add_ve_snr(df, labels, img_rgb[:, :, 1])
+                ve_ch = channel_map.get("VE-Cadherin", None)
+                if ve_ch is not None:
+                    df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch])
+                else:
+                    df["VE_SNR"] = None
+
                 st.success("Analysis complete.")
             except Exception as e:
                 st.error(f"Failed to process image: {e}")
@@ -183,9 +183,7 @@ elif mode == "Single Image Analysis":
 
         if st.checkbox("Plot trends"):
             metrics = [col for col in df.columns if df[col].dtype in ['float64', 'int64'] and col not in ['Column_ID', 'Cell_ID']]
-            defaults = [m for m in ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"] if m in metrics]
-            selected_metrics = st.multiselect("Select metrics to plot:", options=metrics, default=defaults)
-
+            selected_metrics = st.multiselect("Select metrics to plot:", options=metrics, default=[m for m in ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"] if m in metrics])
             if "Column_Label" not in df.columns:
                 st.error("Column_Label missing from DataFrame.")
             elif selected_metrics:
