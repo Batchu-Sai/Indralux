@@ -128,53 +128,53 @@ if st.session_state.batch_results:
 # ─── SINGLE IMAGE ANALYSIS ──────────────────────────────
 if mode == "Single Image Analysis":
     uploaded_file = st.sidebar.file_uploader("Upload a single fluorescent microscopy image", type=["png", "jpg", "jpeg"])
-if uploaded_file:
-    column_labels = st.text_input("Enter column labels:", "Control,5,15,30").split(",")
+    if uploaded_file:
+        column_labels = st.text_input("Enter column labels:", "Control,5,15,30").split(",")
 
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-        tmp.write(uploaded_file.read())
-        img_path = tmp.name
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(uploaded_file.read())
+            img_path = tmp.name
 
-    st.image(img_path, caption="Uploaded Image", use_container_width=True)
-    with st.spinner("Processing..."):
-        try:
-            df, labels, img_rgb = process_with_breaks(img_path, len(column_labels), column_labels)
-            morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-            ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-            df = pd.merge(df, morph_df, on="Cell_ID", how="left")
-            df = pd.merge(df, ext_df, on="Cell_ID", how="left")
-            df = add_ve_snr(df, labels, img_rgb[:, :, 1])
-            st.success("✅ Done.")
-        except Exception as e:
-            st.error(f"❌ {e}")
-            st.stop()
-
-    st.dataframe(df.head())
-    if st.checkbox("Overlay"):
-        overlay = draw_colored_overlay_with_cv2(img_rgb, labels, df)
-        overlay_path = os.path.join(tempfile.gettempdir(), "overlay.png")
-        cv2.imwrite(overlay_path, cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR))
-        st.image(overlay_path, caption="Overlay", use_container_width=True)
-
-    if st.checkbox("Trend plots"):
-        metric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64']]
-        defaults = [m for m in ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"] if m in metric_cols]
-        selected = st.multiselect("Metrics:", metric_cols, default=defaults)
-        if selected:
-            fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
-            plot_metric_trends_manual(df, selected, fig_path)
-            st.image(fig_path, caption="Metric Trends", use_container_width=True)
-
-    if st.checkbox("Statistics"):
-        metric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64']]
-        selected = st.multiselect("Run stats on:", metric_cols, default=[m for m in ["VE_Ratio", "Disruption_Index"] if m in metric_cols])
-        if selected and "Column_Label" in df.columns:
-            result_df = run_statistical_tests(df[["Column_Label"] + selected])
-            st.dataframe(result_df)
-            csv_path = os.path.join(tempfile.gettempdir(), "kruskal_results.csv")
-            result_df.to_csv(csv_path, index=False)
-            st.download_button("Download Stats CSV", open(csv_path, "rb"), "kruskal_results.csv")
-
-    final_csv = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
-    df.to_csv(final_csv, index=False)
-    st.download_button("📂 Download Metrics", open(final_csv, "rb"), "indralux_metrics.csv")
+        st.image(img_path, caption="Uploaded Image", use_container_width=True)
+        with st.spinner("Processing..."):
+            try:
+                df, labels, img_rgb = process_with_breaks(img_path, len(column_labels), column_labels)
+                morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
+                ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
+                df = pd.merge(df, morph_df, on="Cell_ID", how="left")
+                df = pd.merge(df, ext_df, on="Cell_ID", how="left")
+                df = add_ve_snr(df, labels, img_rgb[:, :, 1])
+                st.success("✅ Done.")
+            except Exception as e:
+                st.error(f"❌ {e}")
+                st.stop()
+    
+        st.dataframe(df.head())
+        if st.checkbox("Overlay"):
+            overlay = draw_colored_overlay_with_cv2(img_rgb, labels, df)
+            overlay_path = os.path.join(tempfile.gettempdir(), "overlay.png")
+            cv2.imwrite(overlay_path, cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR))
+            st.image(overlay_path, caption="Overlay", use_container_width=True)
+    
+        if st.checkbox("Trend plots"):
+            metric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64']]
+            defaults = [m for m in ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"] if m in metric_cols]
+            selected = st.multiselect("Metrics:", metric_cols, default=defaults)
+            if selected:
+                fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
+                plot_metric_trends_manual(df, selected, fig_path)
+                st.image(fig_path, caption="Metric Trends", use_container_width=True)
+    
+        if st.checkbox("Statistics"):
+            metric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64']]
+            selected = st.multiselect("Run stats on:", metric_cols, default=[m for m in ["VE_Ratio", "Disruption_Index"] if m in metric_cols])
+            if selected and "Column_Label" in df.columns:
+                result_df = run_statistical_tests(df[["Column_Label"] + selected])
+                st.dataframe(result_df)
+                csv_path = os.path.join(tempfile.gettempdir(), "kruskal_results.csv")
+                result_df.to_csv(csv_path, index=False)
+                st.download_button("Download Stats CSV", open(csv_path, "rb"), "kruskal_results.csv")
+    
+        final_csv = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
+        df.to_csv(final_csv, index=False)
+        st.download_button("📂 Download Metrics", open(final_csv, "rb"), "indralux_metrics.csv")
