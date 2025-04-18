@@ -24,9 +24,13 @@ def split_into_n_columns(img_path, output_dir, n_cols):
 
         save_path = os.path.join(output_dir, f"{base}_col{i+1}.png")
         success = cv2.imwrite(save_path, col)
+        if success and os.path.exists(save_path) and os.path.getsize(save_path) > 1024:
+            saved.append(save_path)
+        else:
+            print(f"[WARNING] Skipped corrupt or empty panel {i+1}: {save_path}")
 
         if not success:
             raise IOError(f"[split_into_n_columns] Failed to save panel image: {save_path}")
-        saved.append(save_path)
 
     return saved
+
