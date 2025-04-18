@@ -1,5 +1,5 @@
-# Fluorescence Image Analyzer
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+# Fluorescence Image Analyzer [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A lightweight image analysis tool for fluorescence microscopy data, built as a side project for in-house workflow.
 
 ## Features
@@ -12,8 +12,8 @@ A lightweight image analysis tool for fluorescence microscopy data, built as a s
 - Streamlit-powered interactive UI
 
 <p align="center">
-  <a href="https://indralux.streamlit.app/">Live App</a> •
-  <a href="https://github.com/Batchu-Sai/Indralux">GitHub Repo</a> •
+  <a href="https://fluorescence-image-analyzer.streamlit.app/">Live App</a> •
+  <a href="https://github.com/Batchu-Sai/fluorescence-image-analyzer">GitHub Repo</a> •
   <a href="docs/metrics_table.md">Full Metrics Table</a> •
   <a href="#how-it-works">How It Works</a>
 </p>
