@@ -49,12 +49,6 @@ marker_channel_map = {
 # Image Type
 channel_mode = st.sidebar.radio("Image Type", ["Color (RGB)", "Grayscale"], help="Select 'Grayscale' for single-channel images.", key="channel_mode")
 
-# Marker Mapping
-marker_channel_map = {
-    marker_f1: 0,
-    marker_f2: 1,
-    marker_f3: 2
-}
 st.sidebar.markdown("**Assigned Channels:**")
 for marker, channel in marker_channel_map.items():
     if marker != "Other":
