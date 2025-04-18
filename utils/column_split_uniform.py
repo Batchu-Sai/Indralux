@@ -31,4 +31,3 @@ def split_into_n_columns(img_path, output_dir, n_cols):
 
     return saved
 
-
