@@ -30,7 +30,7 @@ mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analy
 
 st.sidebar.markdown("**Note:** Images must be 3-channel RGB. If using custom markers, map the channels below.")
 
-# Marker configuration
+# Marker Channel Mapping
 marker_f1 = st.sidebar.selectbox("Marker in Channel 1 (Red)", ["F-Actin", "VE-Cadherin", "DAPI", "Other"], index=0, key="marker_red")
 marker_f2 = st.sidebar.selectbox("Marker in Channel 2 (Green)", ["VE-Cadherin", "F-Actin", "DAPI", "Other"], index=0, key="marker_green")
 marker_f3 = st.sidebar.selectbox("Marker in Channel 3 (Blue)", ["DAPI", "F-Actin", "VE-Cadherin", "Other"], index=0, key="marker_blue")
@@ -53,10 +53,10 @@ if mode == "Batch PPTX Upload":
             selected = st.selectbox("Select slide image to analyze:", clean_imgs)
             img_path = os.path.join(extract_dir, selected)
             try:
-                Image.open(img_path).convert("RGB").save(img_path, format="PNG")
-                img_test = cv2.imread(str(img_path))
-                if img_test is None:
-                    raise ValueError(f"❌ OpenCV cannot read image: {img_path}")
+                Image.open(img_path).convert("RGB").save(img_path)
+                img = cv2.imread(img_path)
+                if img is None:
+                    raise ValueError(f"OpenCV cannot read image: {img_path}")
                 st.image(img_path, caption=selected, use_column_width=True)
             except Exception as e:
                 st.error(f"Failed to load image: {e}")
@@ -85,12 +85,12 @@ if mode == "Batch PPTX Upload":
                 per_col_data = []
                 for idx, col_path in enumerate(col_paths):
                     try:
-                        if not os.path.exists(col_path):
-                            raise FileNotFoundError(f"Panel image not found: {col_path}")
+                        if not isinstance(col_path, str) or not os.path.exists(col_path):
+                            raise FileNotFoundError(f"Panel path invalid: {col_path}")
                         Image.open(col_path).convert("RGB").save(col_path)
                         img = cv2.imread(col_path)
                         if img is None:
-                            raise ValueError(f"Failed to load panel image: {col_path}")
+                            raise ValueError(f"Failed to load image: {col_path}")
 
                         label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
                         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -107,7 +107,7 @@ if mode == "Batch PPTX Upload":
                         df["Panel_Label"] = label
                         per_col_data.append(df)
                     except Exception as e:
-                        st.warning(f"⚠️ Panel {idx+1} error: {e}")
+                        st.warning(f"Panel {idx+1} failed: {e}")
 
                 if per_col_data:
                     result_df = pd.concat(per_col_data, ignore_index=True)
@@ -128,10 +128,10 @@ elif mode == "Single Image Analysis":
             img_path = tmp.name
 
         try:
-            Image.open(img_path).convert("RGB").save(img_path, format="PNG")
+            Image.open(img_path).convert("RGB").save(img_path)
             img = cv2.imread(img_path)
             if img is None:
-                raise ValueError(f"Failed to load image at: {img_path}")
+                raise ValueError(f"cv2 could not load the image at: {img_path}")
             st.image(img_path, caption="Uploaded Image", use_column_width=True)
         except Exception as e:
             st.error(f"Failed to load image: {e}")
@@ -147,12 +147,8 @@ elif mode == "Single Image Analysis":
                 ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
                 df = pd.merge(df, morph_df, on="Cell_ID", how="left")
                 df = pd.merge(df, ext_df, on="Cell_ID", how="left")
-
                 ve_ch = channel_map.get("VE-Cadherin", None)
-                if ve_ch is not None:
-                    df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch])
-                else:
-                    df["VE_SNR"] = None
+                df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch]) if ve_ch is not None else df.assign(VE_SNR=None)
 
                 st.success("Analysis complete.")
                 st.dataframe(df.head())
