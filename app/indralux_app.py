@@ -253,7 +253,7 @@ elif mode == "Single Image Analysis":
         if st.checkbox("Trend plots"):
             default_metrics = ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"]
             safe_defaults = [m for m in default_metrics if m in metric_cols]
-            selected = st.multiselect("Metrics to plot:", metric_cols, default=safe_defaults)
+            selected = st.multiselect("Metrics to plot:", metric_cols, default=safe_defaults, key="metrics_to_plot_single")
             if selected:
                 fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
                 plot_metric_trends_manual(result_df, selected, fig_path)
@@ -262,7 +262,7 @@ elif mode == "Single Image Analysis":
         if st.checkbox("Statistics"):
             default_metrics = ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"]
             safe_defaults = [m for m in default_metrics if m in metric_cols]
-            selected = st.multiselect("Metrics to plot:", metric_cols, default=safe_defaults)
+            selected = st.multiselect("Run stats on:", metric_cols, default=safe_defaults, key="metrics_for_stats_single")
             if selected and "Column_Label" in result_df.columns:
                 stats_df = run_statistical_tests(result_df[["Column_Label"] + selected])
                 st.dataframe(stats_df)
