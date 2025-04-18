@@ -144,65 +144,6 @@ if st.session_state.batch_results:
     all_df.to_csv(full_csv, index=False)
     st.download_button("📦 Download All Metrics CSV", open(full_csv, "rb"), "indralux_batch_all.csv")
 
-# ─── SINGLE IMAGE ANALYSIS ──────────────────────────────
-if mode == "Single Image Analysis":
-    uploaded_file = st.sidebar.file_uploader("Upload a single fluorescent microscopy image", type=["png", "jpg", "jpeg"])
-    if uploaded_file:
-        column_labels = st.text_input("Enter column labels:", "Control,5,15,30").split(",")
-
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            tmp.write(uploaded_file.read())
-            img_path = tmp.name
-
-        st.image(img_path, caption="Uploaded Image", use_column_width=True)
-        with st.spinner("Processing..."):
-            try:
-                df, labels, img_rgb = process_with_breaks(img_path, n_columns=len(column_labels), column_labels=column_labels)
-    
-                morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-                morph_df = morph_df[[col for col in morph_df.columns if col not in df.columns or col == "Cell_ID"]]
-                df = pd.merge(df, morph_df, on="Cell_ID", how="left")
-    
-                ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-                ext_df = ext_df[[col for col in ext_df.columns if col not in df.columns or col == "Cell_ID"]]
-                df = pd.merge(df, ext_df, on="Cell_ID", how="left")
-    
-                df = add_ve_snr(df, labels, img_rgb[:, :, 1])
-    
-                st.success("Segmentation and metrics complete.")
-            except Exception as e:
-                st.error(f"Failed to process image: {e}")
-                st.stop()
-        
-        st.dataframe(df.head())
-        if st.checkbox("Overlay", key='cb_overlay'):
-            overlay = draw_colored_overlay_with_cv2(img_rgb, labels, df)
-            overlay_path = os.path.join(tempfile.gettempdir(), "overlay.png")
-            cv2.imwrite(overlay_path, cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR))
-            st.image(overlay_path, caption="Overlay", use_column_width=True)
-        
-        if st.checkbox("Trend plots", key='cb_plot'):
-            metric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64']]
-            defaults = [m for m in ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"] if m in metric_cols]
-            selected = st.multiselect("Metrics:", metric_cols, default=defaults)
-            if selected:
-                fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
-                plot_metric_trends_manual(df, selected, fig_path)
-                st.image(fig_path, caption="Metric Trends", use_column_width=True)
-        
-        if st.checkbox("Statistics", key='cb_stats'):
-            metric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64']]
-            selected = st.multiselect("Run stats on:", metric_cols, default=[m for m in ["VE_Ratio", "Disruption_Index"] if m in metric_cols])
-            if selected and "Column_Label" in df.columns:
-                result_df = run_statistical_tests(df[["Column_Label"] + selected])
-                st.dataframe(result_df)
-                csv_path = os.path.join(tempfile.gettempdir(), "kruskal_results.csv")
-                result_df.to_csv(csv_path, index=False)
-                st.download_button("Download Stats CSV", open(csv_path, "rb"), "kruskal_results.csv")
-        
-        final_csv = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
-        df.to_csv(final_csv, index=False)
-        st.download_button("📂 Download Metrics", open(final_csv, "rb"), "indralux_metrics.csv")
 
 
 
@@ -230,7 +171,7 @@ if mode == "Batch PPTX Upload":
                 stat_result = run_statistical_tests(full_df, metric=selected_metric)
                 st.write(stat_result)
 
-# ─── SINGLE IMAGE ANALYSIS ──────────────────────────────
+
 
 # ─── SINGLE IMAGE ANALYSIS ──────────────────────────────
 elif mode == "Single Image Analysis":
