@@ -18,7 +18,7 @@ def split_into_n_columns(img_path, output_dir, n_cols):
         x1 = (i + 1) * col_width if i < n_cols - 1 else width
         col = img[:, x0:x1]
         save_path = os.path.join(output_dir, f"{base}_col{i+1}.png")
-        Image.fromarray(cv2.cvtColor(col, cv2.COLOR_BGR2RGB)).save(save_path)
+        cv2.imwrite(save_path, col)
         saved.append(save_path)
     return saved
 
