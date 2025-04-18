@@ -92,6 +92,13 @@ if mode == "Batch PPTX Upload":
                 per_col_data = []
                 for idx, col_path in enumerate(col_paths):
                     try:
+                        if not isinstance(col_path, str) or not os.path.exists(col_path):
+                            raise FileNotFoundError(f"❌ Panel path is invalid or missing: {col_path}")
+                        if os.path.getsize(col_path) < 1024:
+                            raise ValueError(f"❌ Panel {idx+1} file is too small to be valid: {col_path}")
+                        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
+                        if img is None:
+                            raise ValueError(f"❌ OpenCV failed to load Panel {idx+1}: {col_path}")
                         Image.open(col_path).convert("RGB").save(col_path)
                         label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
                         img = cv2.imread(str(col_path), cv2.IMREAD_UNCHANGED)
@@ -174,4 +181,6 @@ elif mode == "Single Image Analysis":
                 st.error(f"Failed to process image: {e}")
                 st.stop()
 
-        st.dataframe(df.head())
+         st.success("Analysis complete.")
+         st.dataframe(df.head())
+
