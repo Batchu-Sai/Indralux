@@ -49,10 +49,6 @@ for marker, channel in marker_channel_map.items():
     if marker != "Other":
         st.sidebar.markdown(f"- **{marker}** → Channel {channel}")
 
-# Image Type
-channel_mode = st.sidebar.radio("Image Type", ["Color (RGB)", "Grayscale"], help="Select 'Grayscale' for single-channel images.", key="channel_mode")
-
-
 # Batch Mode
 if mode == "Batch PPTX Upload":
     pptx_file = st.sidebar.file_uploader("Upload .pptx file", type=["pptx"])
