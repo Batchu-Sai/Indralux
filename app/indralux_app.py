@@ -30,13 +30,11 @@ mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analy
 
 st.sidebar.markdown("**Note:** Images must be 3-channel RGB. If using custom markers, map the channels below.")
 
-if channel_mode == "Color (RGB)":
-    marker_f1 = st.sidebar.selectbox("Marker in Channel 1 (Red)", ["F-Actin", "VE-Cadherin", "DAPI", "Other"], index=0, key="marker_red")
-    marker_f2 = st.sidebar.selectbox("Marker in Channel 2 (Green)", ["VE-Cadherin", "F-Actin", "DAPI", "Other"], index=0, key="marker_green")
-    marker_f3 = st.sidebar.selectbox("Marker in Channel 3 (Blue)", ["DAPI", "F-Actin", "VE-Cadherin", "Other"], index=0, key="marker_blue")
-    marker_channel_map = {marker_f1: 0, marker_f2: 1, marker_f3: 2}
-
-    marker_channel_map = {"F-Actin": 0, "VE-Cadherin": 0, "DAPI": 0}
+# Marker configuration
+marker_f1 = st.sidebar.selectbox("Marker in Channel 1 (Red)", ["F-Actin", "VE-Cadherin", "DAPI", "Other"], index=0, key="marker_red")
+marker_f2 = st.sidebar.selectbox("Marker in Channel 2 (Green)", ["VE-Cadherin", "F-Actin", "DAPI", "Other"], index=0, key="marker_green")
+marker_f3 = st.sidebar.selectbox("Marker in Channel 3 (Blue)", ["DAPI", "F-Actin", "VE-Cadherin", "Other"], index=0, key="marker_blue")
+marker_channel_map = {marker_f1: 0, marker_f2: 1, marker_f3: 2}
 
 # Batch Mode
 if mode == "Batch PPTX Upload":
@@ -55,15 +53,11 @@ if mode == "Batch PPTX Upload":
             selected = st.selectbox("Select slide image to analyze:", clean_imgs)
             img_path = os.path.join(extract_dir, selected)
             try:
-                img_pil = Image.open(img_path).convert("RGB")
-                img_pil.save(img_path, format="PNG")
+                Image.open(img_path).convert("RGB").save(img_path, format="PNG")
                 img_test = cv2.imread(str(img_path))
                 if img_test is None:
                     raise ValueError(f"❌ OpenCV cannot read image: {img_path}")
-                st.success(f"✅ Loaded image: {img_path}, shape: {img_test.shape}")
                 st.image(img_path, caption=selected, use_column_width=True)
-            except Exception as e:
-                st.warning(f'⚠️ Exception: {e}')
             except Exception as e:
                 st.error(f"Failed to load image: {e}")
                 st.stop()
@@ -91,25 +85,16 @@ if mode == "Batch PPTX Upload":
                 per_col_data = []
                 for idx, col_path in enumerate(col_paths):
                     try:
-                        if not isinstance(col_path, str) or not os.path.exists(col_path):
-                            raise FileNotFoundError(f"❌ Panel path is invalid or missing: {col_path}")
-                        if os.path.getsize(col_path) < 1024:
-                            raise ValueError(f"❌ Panel {idx+1} file is too small to be valid: {col_path}")
-                        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
-                        if img is None:
-                            raise ValueError(f"❌ OpenCV failed to load Panel {idx+1}: {col_path}")
+                        if not os.path.exists(col_path):
+                            raise FileNotFoundError(f"Panel image not found: {col_path}")
                         Image.open(col_path).convert("RGB").save(col_path)
-                        label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
-                        img = cv2.imread(str(col_path), cv2.IMREAD_UNCHANGED)
+                        img = cv2.imread(col_path)
                         if img is None:
-                            raise ValueError(f"cv2 could not load the image at: {col_path}")
+                            raise ValueError(f"Failed to load panel image: {col_path}")
 
-                        # Grayscale removed
-                            img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else img
-                            channel_map = {"F-Actin": 0, "VE-Cadherin": 0, "DAPI": 0}
-                        
-                            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                            channel_map = {k: v for k, v in marker_channel_map.items() if k != "Other"}
+                        label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
+                        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                        channel_map = {k: v for k, v in marker_channel_map.items() if k != "Other"}
 
                         df, labels, _ = process_with_breaks(img_rgb, n_columns=1, column_labels=[label], channel_map=channel_map)
                         morph = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
@@ -122,9 +107,7 @@ if mode == "Batch PPTX Upload":
                         df["Panel_Label"] = label
                         per_col_data.append(df)
                     except Exception as e:
-                        st.warning(f'⚠️ Exception: {e}')
-                    except Exception as e:
-                        st.warning(f"Failed to analyze panel {idx+1}: {e}")
+                        st.warning(f"⚠️ Panel {idx+1} error: {e}")
 
                 if per_col_data:
                     result_df = pd.concat(per_col_data, ignore_index=True)
@@ -146,47 +129,33 @@ elif mode == "Single Image Analysis":
 
         try:
             Image.open(img_path).convert("RGB").save(img_path, format="PNG")
-            img = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)
+            img = cv2.imread(img_path)
             if img is None:
-                raise ValueError(f"cv2 could not load the image at: {img_path}")
+                raise ValueError(f"Failed to load image at: {img_path}")
             st.image(img_path, caption="Uploaded Image", use_column_width=True)
-        except Exception as e:
-            st.warning(f'⚠️ Exception: {e}')
         except Exception as e:
             st.error(f"Failed to load image: {e}")
             st.stop()
 
         with st.spinner("Processing image..."):
-    try:
-        img = cv2.imread(img_path)
-        if img is None:
-            raise ValueError(f"cv2 could not load the image at: {img_path}")
+            try:
+                img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                channel_map = {k: v for k, v in marker_channel_map.items() if k != "Other"}
 
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        channel_map = {k: v for k, v in marker_channel_map.items() if k != "Other"}
+                df, labels, _ = process_with_breaks(img_rgb, n_columns=len(column_labels), column_labels=column_labels, channel_map=channel_map)
+                morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
+                ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
+                df = pd.merge(df, morph_df, on="Cell_ID", how="left")
+                df = pd.merge(df, ext_df, on="Cell_ID", how="left")
 
-        df, labels, _ = process_with_breaks(
-            img_rgb,
-            n_columns=len(column_labels),
-            column_labels=column_labels,
-            channel_map=channel_map
-        )
+                ve_ch = channel_map.get("VE-Cadherin", None)
+                if ve_ch is not None:
+                    df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch])
+                else:
+                    df["VE_SNR"] = None
 
-        morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-        ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-        df = pd.merge(df, morph_df, on="Cell_ID", how="left")
-        df = pd.merge(df, ext_df, on="Cell_ID", how="left")
-
-        ve_ch = channel_map.get("VE-Cadherin", None)
-        if ve_ch is not None:
-            df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch])
-        else:
-            df["VE_SNR"] = None
-
-        st.success("Analysis complete.")
-    except Exception as e:
-        st.error(f"Failed to process image: {e}")
-        st.stop()
-
-         st.success("Analysis complete.")
-         st.dataframe(df.head())
+                st.success("Analysis complete.")
+                st.dataframe(df.head())
+            except Exception as e:
+                st.error(f"Failed to process image: {e}")
+                st.stop()
