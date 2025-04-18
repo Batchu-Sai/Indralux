@@ -54,6 +54,14 @@ if mode == "Batch PPTX Upload":
         if clean_imgs:
             selected = st.selectbox("Select slide image to analyze:", clean_imgs)
             img_path = os.path.join(extract_dir, selected)
+            if not os.path.exists(img_path):
+    st.error(f"❌ File not found: {img_path}")
+else:
+    img_test = cv2.imread(img_path)
+    if img_test is None:
+        st.error(f"❌ OpenCV cannot read image: {img_path}")
+    else:
+        st.success(f"✅ Loaded image: {img_path}, shape: {img_test.shape}")
             st.image(img_path, caption=selected, use_column_width=True)
 
             label_key = f"labels_{selected}"
