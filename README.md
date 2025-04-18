@@ -23,11 +23,11 @@ If you use this tool in your work, please cite:
 fluorescence-image-analyzer (2025)
 
 Usage
-	•	Upload RGB microscopy images
-	•	Define number of columns and labels
-	•	Click “▶️ Start Analysis” to process
-	•	Use the sidebar to enable overlay, stats, and plotting
-	•	Export metrics as CSV
+- Upload RGB microscopy images
+- Define number of columns and labels
+- Click “▶️ Start Analysis” to process
+- Use the sidebar to enable overlay, stats, and plotting
+- Export metrics as CSV
 
 Notes
 
