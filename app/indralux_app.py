@@ -37,8 +37,9 @@ marker_f3 = st.sidebar.selectbox("Marker in Channel 3 (Blue)", ["DAPI", "F-Actin
 marker_channel_map = {marker_f1: 0, marker_f2: 1, marker_f3: 2}
 
 # ─── BATCH ANALYSIS ──────────────────────────────
-if st.checkbox("📂 Upload .pptx for Batch Analysis"):
-    pptx_file = st.file_uploader("Upload your .pptx file", type=["pptx"])
+if mode == "Batch PPTX Upload":
+    pptx_file = st.sidebar.file_uploader("Upload .pptx file", type=["pptx"])
+    
     if pptx_file:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pptx") as tmp:
             tmp.write(pptx_file.read())
@@ -49,7 +50,7 @@ if st.checkbox("📂 Upload .pptx for Batch Analysis"):
         clean_imgs = extract_clean_images_from_pptx(pptx_path, extract_dir)
 
         if clean_imgs:
-            selected = st.selectbox("📸 Select slide image to analyze:", clean_imgs)
+            selected = st.selectbox("Select slide image to analyze:", clean_imgs)
             img_path = os.path.join(extract_dir, selected)
             st.image(img_path, caption=f"Preview: {selected}", use_container_width=True)
 
