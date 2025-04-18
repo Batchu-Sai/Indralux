@@ -56,6 +56,13 @@ if mode == "Batch PPTX Upload":
             selected = st.selectbox("Select slide image to analyze:", clean_imgs)
             img_path = os.path.join(extract_dir, selected)
             try:
+        if not isinstance(col_path, str) or not os.path.exists(col_path):
+            raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
+        if os.path.getsize(col_path) < 1024:
+            raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
+        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
                 img_pil = Image.open(img_path).convert("RGB")
                 img_pil.save(img_path, format="PNG")
                 img_test = cv2.imread(str(img_path))
@@ -95,6 +102,12 @@ if mode == "Batch PPTX Upload":
         if os.path.getsize(col_path) < 1024:
             raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
         img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
+        if not isinstance(col_path, str) or not os.path.exists(col_path):
+            raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
+        if os.path.getsize(col_path) < 1024:
+            raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
         if img is None:
             raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
                         Image.open(col_path).convert("RGB").save(col_path)
@@ -142,6 +155,13 @@ elif mode == "Single Image Analysis":
             img_path = tmp.name
 
         try:
+        if not isinstance(col_path, str) or not os.path.exists(col_path):
+            raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
+        if os.path.getsize(col_path) < 1024:
+            raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
+        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
             Image.open(img_path).convert("RGB").save(img_path, format="PNG")
             img = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)
             if img is None:
@@ -153,6 +173,13 @@ elif mode == "Single Image Analysis":
 
         with st.spinner("Processing image..."):
             try:
+        if not isinstance(col_path, str) or not os.path.exists(col_path):
+            raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
+        if os.path.getsize(col_path) < 1024:
+            raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
+        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
                 if channel_mode == "Grayscale":
                     img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else img
                     channel_map = {"F-Actin": 0, "VE-Cadherin": 0, "DAPI": 0}
