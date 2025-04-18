@@ -127,7 +127,7 @@ if st.session_state.batch_results:
 
 # ─── SINGLE IMAGE ANALYSIS ──────────────────────────────
 if mode == "Single Image Analysis":
-uploaded_file = st.sidebar.file_uploader("Upload a single fluorescent microscopy image", type=["png", "jpg", "jpeg"])
+    uploaded_file = st.sidebar.file_uploader("Upload a single fluorescent microscopy image", type=["png", "jpg", "jpeg"])
 if uploaded_file:
     column_labels = st.text_input("Enter column labels:", "Control,5,15,30").split(",")
 
