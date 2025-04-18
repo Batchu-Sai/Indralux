@@ -13,7 +13,9 @@ def draw_colored_overlay_with_cv2(img, labels, df):
         if region.label in df['Cell_ID'].values:
             y, x = map(int, region.centroid)
             color = tuple((np.array(cmap(region.label)[:3]) * 255).astype(int))
-            cv2.drawContours(overlay, [region.convex_image.astype(np.uint8)], -1, color, 1)
-            cv2.putText(overlay, str(region.label), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1, cv2.LINE_AA)
+            try:
+                cv2.drawContours(overlay, [region.convex_image.astype(np.uint8)], -1, color, 1)
+            except Exception as e:
+                print(f"Warning: could not draw region: {e}")
 
     return overlay
