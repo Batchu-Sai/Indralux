@@ -151,22 +151,22 @@ if mode == "Single Image Analysis":
         st.image(img_path, caption="Uploaded Image", use_column_width=True)
         with st.spinner("Processing..."):
             try:
-            df, labels, img_rgb = process_with_breaks(img_path, n_columns=len(column_labels), column_labels=column_labels)
-
-            morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-            morph_df = morph_df[[col for col in morph_df.columns if col not in df.columns or col == "Cell_ID"]]
-            df = pd.merge(df, morph_df, on="Cell_ID", how="left")
-
-            ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-            ext_df = ext_df[[col for col in ext_df.columns if col not in df.columns or col == "Cell_ID"]]
-            df = pd.merge(df, ext_df, on="Cell_ID", how="left")
-
-            df = add_ve_snr(df, labels, img_rgb[:, :, 1])
-
-            st.success("Segmentation and metrics complete.")
-        except Exception as e:
-            st.error(f"Failed to process image: {e}")
-            st.stop()
+                df, labels, img_rgb = process_with_breaks(img_path, n_columns=len(column_labels), column_labels=column_labels)
+    
+                morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
+                morph_df = morph_df[[col for col in morph_df.columns if col not in df.columns or col == "Cell_ID"]]
+                df = pd.merge(df, morph_df, on="Cell_ID", how="left")
+    
+                ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
+                ext_df = ext_df[[col for col in ext_df.columns if col not in df.columns or col == "Cell_ID"]]
+                df = pd.merge(df, ext_df, on="Cell_ID", how="left")
+    
+                df = add_ve_snr(df, labels, img_rgb[:, :, 1])
+    
+                st.success("Segmentation and metrics complete.")
+            except Exception as e:
+                st.error(f"Failed to process image: {e}")
+                st.stop()
         
         st.dataframe(df.head())
         if st.checkbox("Overlay", key='cb_overlay'):
