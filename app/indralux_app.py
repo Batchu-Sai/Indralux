@@ -25,29 +25,27 @@ if "batch_results" not in st.session_state:
     st.session_state.batch_results = {}
 
 # Mode Selection
-mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analysis"], key="mode_selector")
+mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analysis"], key="mode_switch")
 
 # Image Type
-channel_mode = st.sidebar.radio("Image Type", ["Color (RGB)", "Grayscale"], help="Select 'Grayscale' for single-channel images.", key="channel_mode_selector")
+channel_mode = st.sidebar.radio("Image Type", ["Color (RGB)", "Grayscale"], help="Select 'Grayscale' for single-channel images.", key="channel_mode")
 
-# Marker Selection (only for Color mode)
+# Marker Selection (only show if Color selected)
 if channel_mode == "Color (RGB)":
-    marker_f1 = st.sidebar.selectbox("Marker in Channel 1 (Red)", ["F-Actin", "VE-Cadherin", "DAPI", "Other"], index=0, help="Using standard markers? Leave as is.", key="marker_red")
-    marker_f2 = st.sidebar.selectbox("Marker in Channel 2 (Green)", ["VE-Cadherin", "F-Actin", "DAPI", "Other"], index=0, help="Using standard markers? Leave as is.", key="marker_green")
-    marker_f3 = st.sidebar.selectbox("Marker in Channel 3 (Blue)", ["DAPI", "F-Actin", "VE-Cadherin", "Other"], index=0, help="Using standard markers? Leave as is.", key="marker_blue")
+    marker_f1 = st.sidebar.selectbox("Marker in Channel 1 (Red)", ["F-Actin", "VE-Cadherin", "DAPI", "Other"], index=0, key="marker_red")
+    marker_f2 = st.sidebar.selectbox("Marker in Channel 2 (Green)", ["VE-Cadherin", "F-Actin", "DAPI", "Other"], index=0, key="marker_green")
+    marker_f3 = st.sidebar.selectbox("Marker in Channel 3 (Blue)", ["DAPI", "F-Actin", "VE-Cadherin", "Other"], index=0, key="marker_blue")
+    marker_channel_map = {
+        marker_f1: 0,
+        marker_f2: 1,
+        marker_f3: 2
+    }
+    st.sidebar.markdown("**Assigned Channels:**")
+    for marker, channel in marker_channel_map.items():
+        if marker != "Other":
+            st.sidebar.markdown(f"- **{marker}** → Channel {channel}")
 else:
-    marker_f1 = marker_f2 = marker_f3 = "Other"
-
-# Marker Mapping
-marker_channel_map = {
-    marker_f1: 0,
-    marker_f2: 1,
-    marker_f3: 2
-}
-st.sidebar.markdown("**Assigned Channels:**")
-for marker, channel in marker_channel_map.items():
-    if marker != "Other":
-        st.sidebar.markdown(f"- **{marker}** → Channel {channel}")
+    marker_channel_map = {"VE-Cadherin": 0, "F-Actin": 0, "DAPI": 0}
 
 # Batch Mode
 if mode == "Batch PPTX Upload":
@@ -92,8 +90,10 @@ if mode == "Batch PPTX Upload":
                     try:
                         label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
                         img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
-                        is_gray = channel_mode == "Grayscale"
-                        if is_gray:
+                        if img is None:
+                            raise ValueError(f"Could not load image: {col_path}")
+
+                        if channel_mode == "Grayscale":
                             img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else img
                             channel_map = {"VE-Cadherin": 0, "F-Actin": 0, "DAPI": 0}
                         else:
@@ -152,8 +152,10 @@ elif mode == "Single Image Analysis":
         with st.spinner("Processing image..."):
             try:
                 img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
-                is_gray = channel_mode == "Grayscale"
-                if is_gray:
+                if img is None:
+                    raise ValueError(f"Could not load image: {img_path}")
+
+                if channel_mode == "Grayscale":
                     img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else img
                     channel_map = {"VE-Cadherin": 0, "F-Actin": 0, "DAPI": 0}
                 else:
@@ -200,4 +202,3 @@ elif mode == "Single Image Analysis":
             if stat_metrics and "Column_Label" in df.columns:
                 result_df = run_statistical_tests(df[["Column_Label"] + stat_metrics])
                 st.dataframe(result_df)
-
