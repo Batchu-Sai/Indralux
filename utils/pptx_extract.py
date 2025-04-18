@@ -21,10 +21,9 @@ def extract_clean_images_from_pptx(pptx_path, output_dir):
                 path = os.path.join(output_dir, name)
 
                 try:
-                    img = Image.open(io.BytesIO(image.blob)).convert("RGB")
+                    img = Image.open(io.BytesIO(image.blob)).convert("RGB")  # Always convert to RGB to avoid OpenCV errors
                     img.save(path, format="PNG")
                     saved.append(name)
                 except Exception as e:
                     print(f"[Indralux] Failed to convert image from slide {slide_idx}: {e}")
     return saved
-
