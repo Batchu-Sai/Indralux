@@ -1,29 +1,42 @@
 from pptx import Presentation
 import os
 from PIL import Image
-import io
+from io import BytesIO
 
-def extract_clean_images_from_pptx(pptx_path, output_dir):
+def extract_clean_images_from_pptx(pptx_path, output_dir, min_width=300, min_height=300):
     """
-    Extracts only clean embedded image blobs from a PowerPoint file,
-    skipping text boxes, annotations, or rendered slide previews.
-    Saves each image file in the output_dir as clean RGB PNGs.
+    Extracts high-quality images from slides, ignoring small/placeholder graphics.
+
+    Parameters:
+        pptx_path (str): PowerPoint file path
+        output_dir (str): Destination folder
+        min_width (int): Minimum image width to include
+        min_height (int): Minimum image height to include
+
+    Returns:
+        List of saved image filenames
     """
     os.makedirs(output_dir, exist_ok=True)
     prs = Presentation(pptx_path)
-    saved = []
+    extracted = []
 
-    for slide_idx, slide in enumerate(prs.slides, start=1):
-        for shape_idx, shape in enumerate(slide.shapes, start=1):
-            if hasattr(shape, "image"):
-                image = shape.image
-                name = f"slide{slide_idx:02d}_img{shape_idx:02d}.png"
-                path = os.path.join(output_dir, name)
+    for i, slide in enumerate(prs.slides, start=1):
+        for shape in slide.shapes:
+            if not shape.shape_type == 13 or not hasattr(shape, "image"):
+                continue
 
-                try:
-                    img = Image.open(io.BytesIO(image.blob)).convert("RGB")  # Always convert to RGB to avoid OpenCV errors
-                    img.save(path, format="PNG")
-                    saved.append(name)
-                except Exception as e:
-                    print(f"[Indralux] Failed to convert image from slide {slide_idx}: {e}")
-    return saved
+            image = shape.image
+            try:
+                img = Image.open(BytesIO(image.blob)).convert("RGB")
+            except Exception:
+                continue  # Skip corrupt or unreadable images
+
+            if img.width < min_width or img.height < min_height:
+                continue  # Skip tiny artifacts or logos
+
+            name = f"slide{i:02d}_clean.png"
+            path = os.path.join(output_dir, name)
+            img.save(path)
+            extracted.append(name)
+
+    return extracted
