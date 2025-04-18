@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import cv2
 from skimage.measure import regionprops
-from skimage.morphology import morphology, convex_hull_image
+from skimage.morphology import convex_hull_image
 
 def add_morphological_metrics(df, labels):
     regions = regionprops(labels)
