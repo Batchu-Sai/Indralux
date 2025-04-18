@@ -4,7 +4,7 @@ from scipy.stats import kruskal
 import scikit_posthocs as sp
 import os
 
-def run_statistical_tests(df, group_col="Column_Label", output_dir="results"):
+def run_statistical_tests(df, metric, group_col="Column_Label", output_dir="results"):
     os.makedirs(output_dir, exist_ok=True)
     ignore_cols = ['Cell_ID', 'Column_ID', 'Centroid_X', 'Timepoint_Sort']
     numeric_cols = [col for col in df.columns if col not in ignore_cols and df[col].dtype in [np.float64, np.float32, np.int64]]
