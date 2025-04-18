@@ -95,6 +95,7 @@ if mode == "Batch PPTX Upload":
                         # Annotate
                         df["Slide_Image"] = selected
                         df["Panel_Label"] = label
+                        df["Column_Label"] = label
                     
                         per_col_data.append(df)
                     
