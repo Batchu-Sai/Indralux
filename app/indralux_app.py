@@ -157,28 +157,36 @@ elif mode == "Single Image Analysis":
             st.stop()
 
         with st.spinner("Processing image..."):
-            try:
-                # Grayscale removed
-                    img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else img
-                    channel_map = {"F-Actin": 0, "VE-Cadherin": 0, "DAPI": 0}
-                
-                    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                    channel_map = {k: v for k, v in marker_channel_map.items() if k != "Other"}
+    try:
+        img = cv2.imread(img_path)
+        if img is None:
+            raise ValueError(f"cv2 could not load the image at: {img_path}")
 
-                df, labels, _ = process_with_breaks(img_rgb, n_columns=len(column_labels), column_labels=column_labels, channel_map=channel_map)
-                morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-                ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-                df = pd.merge(df, morph_df, on="Cell_ID", how="left")
-                df = pd.merge(df, ext_df, on="Cell_ID", how="left")
-                ve_ch = channel_map.get("VE-Cadherin", None)
-                df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch]) if ve_ch is not None else df.assign(VE_SNR=None)
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        channel_map = {k: v for k, v in marker_channel_map.items() if k != "Other"}
 
-                st.success("Analysis complete.")
-            except Exception as e:
-                st.warning(f'⚠️ Exception: {e}')
-            except Exception as e:
-                st.error(f"Failed to process image: {e}")
-                st.stop()
+        df, labels, _ = process_with_breaks(
+            img_rgb,
+            n_columns=len(column_labels),
+            column_labels=column_labels,
+            channel_map=channel_map
+        )
+
+        morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
+        ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
+        df = pd.merge(df, morph_df, on="Cell_ID", how="left")
+        df = pd.merge(df, ext_df, on="Cell_ID", how="left")
+
+        ve_ch = channel_map.get("VE-Cadherin", None)
+        if ve_ch is not None:
+            df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch])
+        else:
+            df["VE_SNR"] = None
+
+        st.success("Analysis complete.")
+    except Exception as e:
+        st.error(f"Failed to process image: {e}")
+        st.stop()
 
          st.success("Analysis complete.")
          st.dataframe(df.head())
