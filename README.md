@@ -3,11 +3,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 <p align="center">
-  <img src="assets/indralux_final_logo.png" width="260" alt="Indralux Logo"><br>
-  <em></em>
-</p>
-
-<p align="center">
   <a href="https://indralux.streamlit.app/">Live App</a> •
   <a href="https://github.com/Batchu-Sai/Indralux">GitHub Repo</a> •
   <a href="docs/metrics_table.md">Full Metrics Table</a> •
