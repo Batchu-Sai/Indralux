@@ -57,7 +57,7 @@ if mode == "Batch PPTX Upload":
             img_path = os.path.join(extract_dir, selected)
             try:
                 img_pil = Image.open(img_path).convert("RGB")
-                img_pil.save(img_path)
+                img_pil.save(img_path, format="PNG")
                 img_test = cv2.imread(str(img_path))
                 if img_test is None:
                     raise ValueError(f"❌ OpenCV cannot read image: {img_path}")
@@ -90,6 +90,13 @@ if mode == "Batch PPTX Upload":
                 per_col_data = []
                 for idx, col_path in enumerate(col_paths):
                     try:
+        if not isinstance(col_path, str) or not os.path.exists(col_path):
+            raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
+        if os.path.getsize(col_path) < 1024:
+            raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
+        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
                         Image.open(col_path).convert("RGB").save(col_path)
                         label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
                         img = cv2.imread(str(col_path), cv2.IMREAD_UNCHANGED)
@@ -130,12 +137,12 @@ elif mode == "Single Image Analysis":
         column_labels = st.sidebar.text_input("Enter column labels (comma-separated):", "Control,5,15,30")
         column_labels = [label.strip() for label in column_labels.split(",")]
 
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
             tmp.write(uploaded_file.read())
             img_path = tmp.name
 
         try:
-            Image.open(img_path).convert("RGB").save(img_path)
+            Image.open(img_path).convert("RGB").save(img_path, format="PNG")
             img = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)
             if img is None:
                 raise ValueError(f"cv2 could not load the image at: {img_path}")
