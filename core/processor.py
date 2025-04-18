@@ -68,7 +68,7 @@ def process_with_breaks(img_path, n_columns=1, column_labels=None, channel_map=N
     if is_gray:
         img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else np.repeat(img, 3, axis=2)
     else:
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Always read as RGB
 
     # Default fallback
     if channel_map is None:
