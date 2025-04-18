@@ -122,8 +122,7 @@ if st.session_state.batch_results:
 
 # ──────────────── SINGLE IMAGE MODE ────────────────
 if mode == "Single Image Analysis":
-    st.sidebar.file_uploader("Upload Single Microscopy Image")
-    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key="single_upload")
+    uploaded_file = st.sidebar.file_uploader("Upload Single Microscopy Image", type=["png", "jpg", "jpeg"], key="single_upload")
 
     if uploaded_file:
         labels_str = st.text_input("Column labels (comma-separated):", "Control,5,15,30", key="single_labels")
