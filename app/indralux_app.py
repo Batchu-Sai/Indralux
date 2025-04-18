@@ -56,6 +56,13 @@ if mode == "Batch PPTX Upload":
             selected = st.selectbox("Select slide image to analyze:", clean_imgs)
             img_path = os.path.join(extract_dir, selected)
             try:
+                if not isinstance(col_path, str) or not os.path.exists(col_path):
+                    raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
+                if os.path.getsize(col_path) < 1024:
+                    raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
+                img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
+                if img is None:
+                    raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
         if not isinstance(col_path, str) or not os.path.exists(col_path):
             raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
         if os.path.getsize(col_path) < 1024:
@@ -97,6 +104,13 @@ if mode == "Batch PPTX Upload":
                 per_col_data = []
                 for idx, col_path in enumerate(col_paths):
                     try:
+                        if not isinstance(col_path, str) or not os.path.exists(col_path):
+                            raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
+                        if os.path.getsize(col_path) < 1024:
+                            raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
+                        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
+                        if img is None:
+                            raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
         if not isinstance(col_path, str) or not os.path.exists(col_path):
             raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
         if os.path.getsize(col_path) < 1024:
@@ -155,6 +169,13 @@ elif mode == "Single Image Analysis":
             img_path = tmp.name
 
         try:
+            if not isinstance(col_path, str) or not os.path.exists(col_path):
+                raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
+            if os.path.getsize(col_path) < 1024:
+                raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
+            img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
+            if img is None:
+                raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
         if not isinstance(col_path, str) or not os.path.exists(col_path):
             raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
         if os.path.getsize(col_path) < 1024:
@@ -173,6 +194,13 @@ elif mode == "Single Image Analysis":
 
         with st.spinner("Processing image..."):
             try:
+                if not isinstance(col_path, str) or not os.path.exists(col_path):
+                    raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
+                if os.path.getsize(col_path) < 1024:
+                    raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
+                img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
+                if img is None:
+                    raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
         if not isinstance(col_path, str) or not os.path.exists(col_path):
             raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
         if os.path.getsize(col_path) < 1024:
