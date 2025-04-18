@@ -188,19 +188,19 @@ elif mode == "Single Image Analysis":
 # ─── SINGLE IMAGE ANALYSIS ──────────────────────────────
 elif mode == "Single Image Analysis":
     uploaded_image = st.sidebar.file_uploader("Upload a single RGB image", type=["png", "jpg", "jpeg", "tif", "tiff"])
+    label_key = "label_single"
+    if label_key not in st.session_state:
+        st.session_state[label_key] = "Sample1"
+
+    label = st.sidebar.text_input("Label for image:", key=label_key)
+    n_cols = st.sidebar.number_input("How many panels?", 1, 12, value=1, key="ncols_single")
+
     if uploaded_image:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
             tmp.write(uploaded_image.read())
             img_path = tmp.name
 
         st.image(img_path, caption="Uploaded Image", use_column_width=True)
-
-        label_key = "label_single"
-        if label_key not in st.session_state:
-            st.session_state[label_key] = "Sample1"
-
-        label = st.sidebar.text_input("Label for image:", key=label_key)
-        n_cols = st.sidebar.number_input("How many panels?", 1, 12, value=1, key="ncols_single")
 
         if st.sidebar.button("▶️ Start Analysis", key="run_single"):
             split_dir = os.path.join(tempfile.gettempdir(), "split_columns_single")
@@ -231,19 +231,41 @@ elif mode == "Single Image Analysis":
                 except Exception as e:
                     st.warning(f"Error processing panel {idx+1}: {e}")
 
-            st.session_state["results_single"] = per_col_data
-
+            # Combine, store, and visualize results
             if per_col_data:
                 result_df = pd.concat(per_col_data, ignore_index=True)
-                st.success("✅ Analysis complete")
+                st.session_state["results_single"] = per_col_data
+
+                st.success("✅ Analysis complete.")
                 st.dataframe(result_df.head())
 
+                # Overlay option
+                if st.checkbox("Overlay"):
+                    overlay = draw_colored_overlay_with_cv2(img_rgb, labels, df)
+                    overlay_path = os.path.join(tempfile.gettempdir(), "overlay.png")
+                    cv2.imwrite(overlay_path, cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR))
+                    st.image(overlay_path, caption="Overlay", use_column_width=True)
+
+                # Trend plots
                 metric_cols = [col for col in result_df.columns if result_df[col].dtype in ['float64', 'int64']]
-                selected_metrics = st.multiselect("📈 Metrics to plot", metric_cols)
+                if st.checkbox("Trend plots"):
+                    selected = st.multiselect("Metrics to plot:", metric_cols, default=["DAPI_Intensity", "VE_Ratio", "Disruption_Index"])
+                    if selected:
+                        fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
+                        plot_metric_trends_manual(result_df, selected, fig_path)
+                        st.image(fig_path, caption="Metric Trends", use_column_width=True)
 
-                if selected_metrics:
-                    st.line_chart(result_df[selected_metrics])
+                # Statistical testing
+                if st.checkbox("Statistics"):
+                    selected = st.multiselect("Run stats on:", metric_cols, default=["VE_Ratio", "Disruption_Index"])
+                    if selected and "Column_Label" in result_df.columns:
+                        stats_df = run_statistical_tests(result_df[["Column_Label"] + selected])
+                        st.dataframe(stats_df)
+                        stats_path = os.path.join(tempfile.gettempdir(), "kruskal_results.csv")
+                        stats_df.to_csv(stats_path, index=False)
+                        st.download_button("Download Stats CSV", open(stats_path, "rb"), "kruskal_results.csv")
 
-                if st.button("📊 Run stats on plotted metrics"):
-                    stats_df = run_statistical_tests(result_df[["Column_Label"] + selected_metrics])
-                    st.dataframe(stats_df)
+                # Final CSV download
+                final_csv = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
+                result_df.to_csv(final_csv, index=False)
+                st.download_button("📂 Download Metrics", open(final_csv, "rb"), "indralux_metrics.csv")
