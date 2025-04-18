@@ -3,40 +3,33 @@ import os
 from PIL import Image
 from io import BytesIO
 
-def extract_clean_images_from_pptx(pptx_path, output_dir, min_width=300, min_height=300):
-    """
-    Extracts high-quality images from slides, ignoring small/placeholder graphics.
-
-    Parameters:
-        pptx_path (str): PowerPoint file path
-        output_dir (str): Destination folder
-        min_width (int): Minimum image width to include
-        min_height (int): Minimum image height to include
-
-    Returns:
-        List of saved image filenames
-    """
+def extract_clean_images_from_pptx(pptx_path, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     prs = Presentation(pptx_path)
     extracted = []
 
-    for i, slide in enumerate(prs.slides, start=1):
-        for shape in slide.shapes:
-            if not shape.shape_type == 13 or not hasattr(shape, "image"):
+    for slide_idx, slide in enumerate(prs.slides, start=1):
+        for shape_idx, shape in enumerate(slide.shapes, start=1):
+            if not shape.shape_type == 13:  # Skip if not a picture
+                continue
+            if not hasattr(shape, "image"):
                 continue
 
             image = shape.image
-            try:
-                img = Image.open(BytesIO(image.blob)).convert("RGB")
-            except Exception:
-                continue  # Skip corrupt or unreadable images
-
-            if img.width < min_width or img.height < min_height:
-                continue  # Skip tiny artifacts or logos
-
-            name = f"slide{i:02d}_clean.png"
+            ext = image.ext
+            name = f"slide{slide_idx:02d}_img{shape_idx:02d}.{ext}"
             path = os.path.join(output_dir, name)
-            img.save(path)
-            extracted.append(name)
+
+            # Filter out possible text overlay screenshots (heuristic, optional)
+            try:
+                img_data = io.BytesIO(image.blob)
+                with Image.open(img_data) as im:
+                    if im.width < 100 or im.height < 100:
+                        continue
+                    im.save(path)
+                    extracted.append(name)
+            except Exception as e:
+                print(f"Skipping image: {e}")
+                continue
 
     return extracted
