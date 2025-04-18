@@ -60,7 +60,7 @@ if mode == "Batch PPTX Upload":
             if label_key not in st.session_state:
                 st.session_state[label_key] = "Control,5,10,15"
 
-            n_cols = st.number_input("How many panels?", 1, 12, value=4, key=f"ncols_{selected}")
+            n_cols = st.number_input("How many columns?", 1, 12, value=4, key=f"ncols_{selected}")
             col_labels_input = st.text_input("Column labels (comma-separated):", key=label_key)
             col_labels = [l.strip() for l in col_labels_input.split(",")]
 
@@ -172,7 +172,6 @@ if mode == "Batch PPTX Upload":
                 st.write(stat_result)
 
 
-
 # ─── SINGLE IMAGE ANALYSIS ──────────────────────────────
 elif mode == "Single Image Analysis":
     uploaded_image = st.sidebar.file_uploader("Upload a single RGB image", type=["png", "jpg", "jpeg", "tif", "tiff"])
@@ -198,60 +197,78 @@ elif mode == "Single Image Analysis":
             col_paths = split_into_n_columns(img_path, split_dir, n_cols)
 
             per_col_data = []
+            all_labels = []
+            all_imgs = []
+
             for idx, col_path in enumerate(col_paths):
                 try:
                     df, labels, img_rgb = process_with_breaks(col_path, n_columns=1, column_labels=[label])
-
                     morph_df = add_morphological_metrics(df, labels)
+                    ext_df = add_extended_metrics(df, labels)
+                    df = add_ve_snr(df, labels, img_rgb[:, :, 1])
+
+                    # Drop duplicates
                     morph_df = morph_df.drop(columns=["Column_Label", "Slide_Image", "Panel_Label"], errors="ignore")
                     morph_df = morph_df[[col for col in morph_df.columns if col not in df.columns or col == "Cell_ID"]]
                     df = pd.merge(df, morph_df, on="Cell_ID", how="left")
 
-                    ext_df = add_extended_metrics(df, labels)
                     ext_df = ext_df.drop(columns=["Column_Label", "Slide_Image", "Panel_Label"], errors="ignore")
                     ext_df = ext_df[[col for col in ext_df.columns if col not in df.columns or col == "Cell_ID"]]
                     df = pd.merge(df, ext_df, on="Cell_ID", how="left")
 
-                    df = add_ve_snr(df, labels, img_rgb[:, :, 1])
-                    df["Slide_Image"] = "SingleUpload"
-                    #panel_label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
                     col_label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
+                    df["Slide_Image"] = "SingleUpload"
                     df["Column_Label"] = col_label
 
                     per_col_data.append(df)
+                    all_labels.append(labels)
+                    all_imgs.append(img_rgb)
                 except Exception as e:
-                    st.warning(f"Error processing panel {idx+1}: {e}")
+                    st.warning(f"Error processing column {idx+1}: {e}")
 
-            if per_col_data:
-                result_df = pd.concat(per_col_data, ignore_index=True)
-                st.session_state["results_single"] = per_col_data
+            st.session_state["results_single"] = {
+                "data": per_col_data,
+                "labels": all_labels,
+                "img_rgb": all_imgs
+            }
 
-                st.success("✅ Analysis complete.")
-                st.dataframe(result_df.head())
+    if "results_single" in st.session_state:
+        per_col_data = st.session_state["results_single"]["data"]
+        all_labels = st.session_state["results_single"]["labels"]
+        all_imgs = st.session_state["results_single"]["img_rgb"]
+        result_df = pd.concat(per_col_data, ignore_index=True)
 
-                metric_cols = [col for col in result_df.columns if result_df[col].dtype in ['float64', 'int64']]
-                if st.checkbox("Overlay"):
-                    overlay = draw_colored_overlay_with_cv2(img_rgb, labels, df)
-                    overlay_path = os.path.join(tempfile.gettempdir(), "overlay.png")
-                    cv2.imwrite(overlay_path, cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR))
-                    st.image(overlay_path, caption="Overlay", use_column_width=True)
+        st.success("✅ Analysis complete.")
+        st.dataframe(result_df.head())
 
-                if st.checkbox("Trend plots"):
-                    selected = st.multiselect("Metrics to plot:", metric_cols, default=["DAPI_Intensity", "VE_Ratio", "Disruption_Index"])
-                    if selected:
-                        fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
-                        plot_metric_trends_manual(result_df, selected, fig_path)
-                        st.image(fig_path, caption="Metric Trends", use_column_width=True)
+        metric_cols = [col for col in result_df.columns if result_df[col].dtype in ['float64', 'int64']]
 
-                if st.checkbox("Statistics"):
-                    selected = st.multiselect("Run stats on:", metric_cols, default=["VE_Ratio", "Disruption_Index"])
-                    if selected and "Column_Label" in result_df.columns:
-                        stats_df = run_statistical_tests(result_df[["Column_Label"] + selected])
-                        st.dataframe(stats_df)
-                        stats_path = os.path.join(tempfile.gettempdir(), "kruskal_results.csv")
-                        stats_df.to_csv(stats_path, index=False)
-                        st.download_button("Download Stats CSV", open(stats_path, "rb"), "kruskal_results.csv")
+        if st.checkbox("Overlay"):
+            for idx, (labels, img_rgb, df) in enumerate(zip(all_labels, all_imgs, per_col_data)):
+                overlay = draw_colored_overlay_with_cv2(img_rgb, labels, df)
+                overlay_path = os.path.join(tempfile.gettempdir(), f"overlay_col{idx+1}.png")
+                cv2.imwrite(overlay_path, cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR))
+                st.image(overlay_path, caption=f"Overlay Column {idx+1}", use_column_width=True)
 
-                final_csv = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
-                result_df.to_csv(final_csv, index=False)
-                st.download_button("📂 Download Metrics", open(final_csv, "rb"), "indralux_metrics.csv")
+        if st.checkbox("Trend plots"):
+            selected = st.multiselect("Metrics to plot:", metric_cols, default=["DAPI_Intensity", "VE_Ratio", "Disruption_Index"])
+            if selected:
+                fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
+                plot_metric_trends_manual(result_df, selected, fig_path)
+                st.image(fig_path, caption="Metric Trends", use_column_width=True)
+
+        if st.checkbox("Statistics"):
+            selected = st.multiselect("Run stats on:", metric_cols, default=["VE_Ratio", "Disruption_Index"])
+            if selected and "Column_Label" in result_df.columns:
+                stats_df = run_statistical_tests(result_df[["Column_Label"] + selected])
+                st.dataframe(stats_df)
+                stats_path = os.path.join(tempfile.gettempdir(), "kruskal_results.csv")
+                stats_df.to_csv(stats_path, index=False)
+                st.download_button("Download Stats CSV", open(stats_path, "rb"), "kruskal_results.csv")
+
+        final_csv = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
+        result_df.to_csv(final_csv, index=False)
+        st.download_button("📂 Download Metrics", open(final_csv, "rb"), "indralux_metrics.csv")
+
+        if st.sidebar.button("🔁 Reset Analysis"):
+            st.session_state.pop("results_single", None)
