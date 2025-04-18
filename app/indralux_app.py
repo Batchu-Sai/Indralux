@@ -56,24 +56,6 @@ if mode == "Batch PPTX Upload":
             selected = st.selectbox("Select slide image to analyze:", clean_imgs)
             img_path = os.path.join(extract_dir, selected)
             try:
-            except Exception as e:
-                st.warning(f'⚠️ Exception: {e}')
-            except Exception as e:
-                st.warning(f'⚠️ Exception: {e}')
-                if not isinstance(col_path, str) or not os.path.exists(col_path):
-                    raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
-                if os.path.getsize(col_path) < 1024:
-                    raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
-                img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
-                if img is None:
-                    raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
-        if not isinstance(col_path, str) or not os.path.exists(col_path):
-            raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
-        if os.path.getsize(col_path) < 1024:
-            raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
-        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
-        if img is None:
-            raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
                 img_pil = Image.open(img_path).convert("RGB")
                 img_pil.save(img_path, format="PNG")
                 img_test = cv2.imread(str(img_path))
@@ -81,6 +63,8 @@ if mode == "Batch PPTX Upload":
                     raise ValueError(f"❌ OpenCV cannot read image: {img_path}")
                 st.success(f"✅ Loaded image: {img_path}, shape: {img_test.shape}")
                 st.image(img_path, caption=selected, use_column_width=True)
+            except Exception as e:
+                st.warning(f'⚠️ Exception: {e}')
             except Exception as e:
                 st.error(f"Failed to load image: {e}")
                 st.stop()
@@ -108,30 +92,6 @@ if mode == "Batch PPTX Upload":
                 per_col_data = []
                 for idx, col_path in enumerate(col_paths):
                     try:
-                    except Exception as e:
-                        st.warning(f'⚠️ Exception: {e}')
-                    except Exception as e:
-                        st.warning(f'⚠️ Exception: {e}')
-                        if not isinstance(col_path, str) or not os.path.exists(col_path):
-                            raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
-                        if os.path.getsize(col_path) < 1024:
-                            raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
-                        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
-                        if img is None:
-                            raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
-        if not isinstance(col_path, str) or not os.path.exists(col_path):
-            raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
-        if os.path.getsize(col_path) < 1024:
-            raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
-        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
-        if img is None:
-            raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
-        if not isinstance(col_path, str) or not os.path.exists(col_path):
-            raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
-        if os.path.getsize(col_path) < 1024:
-            raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
-        if img is None:
-            raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
                         Image.open(col_path).convert("RGB").save(col_path)
                         label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
                         img = cv2.imread(str(col_path), cv2.IMREAD_UNCHANGED)
@@ -156,6 +116,8 @@ if mode == "Batch PPTX Upload":
                         df["Panel_Label"] = label
                         per_col_data.append(df)
                     except Exception as e:
+                        st.warning(f'⚠️ Exception: {e}')
+                    except Exception as e:
                         st.warning(f"Failed to analyze panel {idx+1}: {e}")
 
                 if per_col_data:
@@ -177,53 +139,19 @@ elif mode == "Single Image Analysis":
             img_path = tmp.name
 
         try:
-        except Exception as e:
-            st.warning(f'⚠️ Exception: {e}')
-        except Exception as e:
-            st.warning(f'⚠️ Exception: {e}')
-            if not isinstance(col_path, str) or not os.path.exists(col_path):
-                raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
-            if os.path.getsize(col_path) < 1024:
-                raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
-            img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
-            if img is None:
-                raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
-        if not isinstance(col_path, str) or not os.path.exists(col_path):
-            raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
-        if os.path.getsize(col_path) < 1024:
-            raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
-        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
-        if img is None:
-            raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
             Image.open(img_path).convert("RGB").save(img_path, format="PNG")
             img = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)
             if img is None:
                 raise ValueError(f"cv2 could not load the image at: {img_path}")
             st.image(img_path, caption="Uploaded Image", use_column_width=True)
         except Exception as e:
+            st.warning(f'⚠️ Exception: {e}')
+        except Exception as e:
             st.error(f"Failed to load image: {e}")
             st.stop()
 
         with st.spinner("Processing image..."):
             try:
-            except Exception as e:
-                st.warning(f'⚠️ Exception: {e}')
-            except Exception as e:
-                st.warning(f'⚠️ Exception: {e}')
-                if not isinstance(col_path, str) or not os.path.exists(col_path):
-                    raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
-                if os.path.getsize(col_path) < 1024:
-                    raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
-                img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
-                if img is None:
-                    raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
-        if not isinstance(col_path, str) or not os.path.exists(col_path):
-            raise FileNotFoundError(f"❌ Panel path is invalid: {col_path}")
-        if os.path.getsize(col_path) < 1024:
-            raise ValueError(f"❌ Panel {idx+1} is too small to be valid: {col_path}")
-        img = cv2.imread(col_path, cv2.IMREAD_UNCHANGED)
-        if img is None:
-            raise ValueError(f"❌ OpenCV failed to load panel {idx+1}: {col_path}")
                 if channel_mode == "Grayscale":
                     img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else img
                     channel_map = {"F-Actin": 0, "VE-Cadherin": 0, "DAPI": 0}
@@ -240,6 +168,8 @@ elif mode == "Single Image Analysis":
                 df = add_ve_snr(df, labels, img_rgb[:, :, ve_ch]) if ve_ch is not None else df.assign(VE_SNR=None)
 
                 st.success("Analysis complete.")
+            except Exception as e:
+                st.warning(f'⚠️ Exception: {e}')
             except Exception as e:
                 st.error(f"Failed to process image: {e}")
                 st.stop()
