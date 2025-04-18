@@ -251,14 +251,18 @@ elif mode == "Single Image Analysis":
                 st.image(overlay_path, caption=f"Overlay Column {idx+1}", use_column_width=True)
 
         if st.checkbox("Trend plots"):
-            selected = st.multiselect("Metrics to plot:", metric_cols, default=["DAPI_Intensity", "VE_Ratio", "Disruption_Index"])
+            default_metrics = ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"]
+            safe_defaults = [m for m in default_metrics if m in metric_cols]
+            selected = st.multiselect("Metrics to plot:", metric_cols, default=safe_defaults)
             if selected:
                 fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
                 plot_metric_trends_manual(result_df, selected, fig_path)
                 st.image(fig_path, caption="Metric Trends", use_column_width=True)
 
         if st.checkbox("Statistics"):
-            selected = st.multiselect("Run stats on:", metric_cols, default=["VE_Ratio", "Disruption_Index"])
+            default_metrics = ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"]
+            safe_defaults = [m for m in default_metrics if m in metric_cols]
+            selected = st.multiselect("Metrics to plot:", metric_cols, default=safe_defaults)
             if selected and "Column_Label" in result_df.columns:
                 stats_df = run_statistical_tests(result_df[["Column_Label"] + selected])
                 st.dataframe(stats_df)
