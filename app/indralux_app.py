@@ -181,7 +181,9 @@ elif mode == "Single Image Analysis":
         st.session_state[label_key] = "Sample1"
 
     label = st.sidebar.text_input("Label for image:", key=label_key)
-    n_cols = st.sidebar.number_input("How many panels?", 1, 12, value=1, key="ncols_single")
+    n_cols = st.sidebar.number_input("How many columns?", 1, 12, value=1, key="ncols_single")
+    col_labels_input = st.sidebar.text_input("Column labels (comma-separated):", value="Control,5,10,15")
+    col_labels = [l.strip() for l in col_labels_input.split(",")]
 
     if uploaded_image:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
@@ -212,8 +214,9 @@ elif mode == "Single Image Analysis":
 
                     df = add_ve_snr(df, labels, img_rgb[:, :, 1])
                     df["Slide_Image"] = "SingleUpload"
-                    df["Panel_Label"] = label
-                    df["Column_Label"] = label
+                    #panel_label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
+                    col_label = col_labels[idx] if idx < len(col_labels) else f"Col{idx+1}"
+                    df["Column_Label"] = col_label
 
                     per_col_data.append(df)
                 except Exception as e:
