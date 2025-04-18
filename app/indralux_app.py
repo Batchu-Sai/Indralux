@@ -98,6 +98,9 @@ if mode == "Batch PPTX Upload":
                         df["Column_Label"] = label
                     
                         per_col_data.append(df)
+                # Store results for this slide in session
+                st.session_state[f"results_{selected}"] = per_col_data
+
                     
                     except Exception as e:
                         st.warning(f"⚠️ Failed to process column {idx + 1} of {selected}: {e}")
@@ -139,63 +142,97 @@ if st.session_state.batch_results:
     all_df.to_csv(full_csv, index=False)
     st.download_button("📦 Download All Metrics CSV", open(full_csv, "rb"), "indralux_batch_all.csv")
 
-# ─── SINGLE IMAGE ANALYSIS ──────────────────────────────
-if mode == "Single Image Analysis":
-    uploaded_file = st.sidebar.file_uploader("Upload a single fluorescent microscopy image", type=["png", "jpg", "jpeg"])
-    if uploaded_file:
-        column_labels = st.text_input("Enter column labels:", "Control,5,15,30").split(",")
 
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            tmp.write(uploaded_file.read())
+# ─── SINGLE IMAGE ANALYSIS ──────────────────────────────
+else:
+    uploaded_image = st.file_uploader("Upload a single RGB image", type=["png", "jpg", "jpeg", "tif", "tiff"])
+    if uploaded_image:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+            tmp.write(uploaded_image.read())
             img_path = tmp.name
 
         st.image(img_path, caption="Uploaded Image", use_column_width=True)
-        with st.spinner("Processing..."):
-            try:
-                df, labels, img_rgb = process_with_breaks(img_path, n_columns=len(column_labels), column_labels=column_labels)
-    
-                morph_df = add_morphological_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-                morph_df = morph_df[[col for col in morph_df.columns if col not in df.columns or col == "Cell_ID"]]
-                df = pd.merge(df, morph_df, on="Cell_ID", how="left")
-    
-                ext_df = add_extended_metrics(df, labels).drop(columns=["Column_Label"], errors="ignore")
-                ext_df = ext_df[[col for col in ext_df.columns if col not in df.columns or col == "Cell_ID"]]
-                df = pd.merge(df, ext_df, on="Cell_ID", how="left")
-    
-                df = add_ve_snr(df, labels, img_rgb[:, :, 1])
-    
-                st.success("Segmentation and metrics complete.")
-            except Exception as e:
-                st.error(f"Failed to process image: {e}")
-                st.stop()
-        
-        st.dataframe(df.head())
-        if st.checkbox("Overlay", key='cb_overlay'):
-            overlay = draw_colored_overlay_with_cv2(img_rgb, labels, df)
-            overlay_path = os.path.join(tempfile.gettempdir(), "overlay.png")
-            cv2.imwrite(overlay_path, cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR))
-            st.image(overlay_path, caption="Overlay", use_column_width=True)
-        
-        if st.checkbox("Trend plots", key='cb_plot'):
-            metric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64']]
-            defaults = [m for m in ["DAPI_Intensity", "VE_Ratio", "Disruption_Index"] if m in metric_cols]
-            selected = st.multiselect("Metrics:", metric_cols, default=defaults)
-            if selected:
-                fig_path = os.path.join(tempfile.gettempdir(), "trend_plot.png")
-                plot_metric_trends_manual(df, selected, fig_path)
-                st.image(fig_path, caption="Metric Trends", use_column_width=True)
-        
-        if st.checkbox("Statistics", key='cb_stats'):
-            metric_cols = [col for col in df.columns if df[col].dtype in ['float64', 'int64']]
-            selected = st.multiselect("Run stats on:", metric_cols, default=[m for m in ["VE_Ratio", "Disruption_Index"] if m in metric_cols])
-            if selected and "Column_Label" in df.columns:
-                result_df = run_statistical_tests(df[["Column_Label"] + selected])
-                st.dataframe(result_df)
-                csv_path = os.path.join(tempfile.gettempdir(), "kruskal_results.csv")
-                result_df.to_csv(csv_path, index=False)
-                st.download_button("Download Stats CSV", open(csv_path, "rb"), "kruskal_results.csv")
-        
-            final_csv = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
-            df.to_csv(final_csv, index=False)
-            st.download_button("📂 Download Metrics", open(final_csv, "rb"), "indralux_metrics.csv")
+
+        label_key = f"labels_single"
+        if label_key not in st.session_state:
+            st.session_state[label_key] = "Sample1"
+
+        label = st.text_input("Label for image:", key=label_key)
+
+        n_cols = st.number_input("How many panels?", 1, 12, value=1, key="ncols_single")
+        run_key = "run_single"
+
+        if st.button("▶️ Start Analysis", key=run_key):
+            split_dir = os.path.join(tempfile.gettempdir(), "split_columns_single")
+            os.makedirs(split_dir, exist_ok=True)
+            col_paths = split_into_n_columns(img_path, split_dir, n_cols)
+
+            per_col_data = []
+            for idx, col_path in enumerate(col_paths):
+                try:
+                    df, labels, img_rgb = process_with_breaks(col_path, n_columns=1, column_labels=[label])
+
+                    morph_df = add_morphological_metrics(df, labels)
+                    morph_df = morph_df.drop(columns=["Column_Label", "Slide_Image", "Panel_Label"], errors="ignore")
+                    morph_df = morph_df[[col for col in morph_df.columns if col not in df.columns or col == "Cell_ID"]]
+                    df = pd.merge(df, morph_df, on="Cell_ID", how="left")
+
+                    ext_df = add_extended_metrics(df, labels)
+                    ext_df = ext_df.drop(columns=["Column_Label", "Slide_Image", "Panel_Label"], errors="ignore")
+                    ext_df = ext_df[[col for col in ext_df.columns if col not in df.columns or col == "Cell_ID"]]
+                    df = pd.merge(df, ext_df, on="Cell_ID", how="left")
+
+                    df = add_ve_snr(df, labels, img_rgb[:, :, 1])
+
+                    df["Slide_Image"] = "SingleUpload"
+                    df["Panel_Label"] = label
+                    df["Column_Label"] = label
+
+                    per_col_data.append(df)
+                except Exception as e:
+                    st.warning(f"Error processing panel {idx+1}: {e}")
+
+            # Store results for single image
+            st.session_state["results_single"] = per_col_data
+
+# ─── METRIC SELECTION & PLOTTING ──────────────────────────────
+if f"results_{selected}" in st.session_state:
+    df_list = st.session_state[f"results_{selected}"]
+    full_df = pd.concat(df_list, ignore_index=True)
+
+    numeric_cols = full_df.select_dtypes(include="number").columns.tolist()
+    excluded = ["Cell_ID"]
+    metric_options = [col for col in numeric_cols if col not in excluded]
+
+    selected_metric = st.selectbox("Select metric to graph or run stats on:", metric_options)
+
+    if selected_metric:
+        st.line_chart(full_df.groupby("Panel_Label")[selected_metric].mean())
+
+        # Optional: Run stats
+        if st.button("Run stats on selected metric"):
+            st.write("Running statistical tests...")
+            stat_result = run_statistical_tests(full_df, metric=selected_metric)
+            st.write(stat_result)
+
+
+
+# ─── SINGLE IMAGE METRICS ──────────────────────────────
+if "results_single" in st.session_state:
+    df_list = st.session_state["results_single"]
+    full_df = pd.concat(df_list, ignore_index=True)
+
+    numeric_cols = full_df.select_dtypes(include="number").columns.tolist()
+    excluded = ["Cell_ID"]
+    metric_options = [col for col in numeric_cols if col not in excluded]
+
+    selected_metric = st.selectbox("Select metric to graph or run stats on (Single Image):", metric_options)
+
+    if selected_metric:
+        st.line_chart(full_df.groupby("Panel_Label")[selected_metric].mean())
+
+        if st.button("Run stats on selected metric (Single Image)"):
+            st.write("Running statistical tests...")
+            stat_result = run_statistical_tests(full_df, metric=selected_metric)
+            st.write(stat_result)
 
