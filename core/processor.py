@@ -129,3 +129,4 @@ def process_with_breaks(img_path, n_columns=1, column_labels=None, channel_map=N
     df = pd.DataFrame(results)
     return df, segmentation_labels, img_rgb
 
+
