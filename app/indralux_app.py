@@ -28,15 +28,14 @@ if "batch_results" not in st.session_state:
 # Mode Selection
 mode = st.sidebar.radio("Select mode", ["Batch PPTX Upload", "Single Image Analysis"], key="mode_switch")
 
-# Image Type
-channel_mode = st.sidebar.radio("Image Type", ["Color (RGB)", "Grayscale"], help="Select 'Grayscale' for single-channel images.", key="channel_mode")
+st.sidebar.markdown("**Note:** Images must be 3-channel RGB. If using custom markers, map the channels below.")
 
 if channel_mode == "Color (RGB)":
     marker_f1 = st.sidebar.selectbox("Marker in Channel 1 (Red)", ["F-Actin", "VE-Cadherin", "DAPI", "Other"], index=0, key="marker_red")
     marker_f2 = st.sidebar.selectbox("Marker in Channel 2 (Green)", ["VE-Cadherin", "F-Actin", "DAPI", "Other"], index=0, key="marker_green")
     marker_f3 = st.sidebar.selectbox("Marker in Channel 3 (Blue)", ["DAPI", "F-Actin", "VE-Cadherin", "Other"], index=0, key="marker_blue")
     marker_channel_map = {marker_f1: 0, marker_f2: 1, marker_f3: 2}
-else:
+
     marker_channel_map = {"F-Actin": 0, "VE-Cadherin": 0, "DAPI": 0}
 
 # Batch Mode
@@ -105,10 +104,10 @@ if mode == "Batch PPTX Upload":
                         if img is None:
                             raise ValueError(f"cv2 could not load the image at: {col_path}")
 
-                        if channel_mode == "Grayscale":
+                        # Grayscale removed
                             img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else img
                             channel_map = {"F-Actin": 0, "VE-Cadherin": 0, "DAPI": 0}
-                        else:
+                        
                             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                             channel_map = {k: v for k, v in marker_channel_map.items() if k != "Other"}
 
@@ -159,10 +158,10 @@ elif mode == "Single Image Analysis":
 
         with st.spinner("Processing image..."):
             try:
-                if channel_mode == "Grayscale":
+                # Grayscale removed
                     img_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) if len(img.shape) == 2 else img
                     channel_map = {"F-Actin": 0, "VE-Cadherin": 0, "DAPI": 0}
-                else:
+                
                     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                     channel_map = {k: v for k, v in marker_channel_map.items() if k != "Other"}
 
