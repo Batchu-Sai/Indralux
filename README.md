@@ -1,5 +1,5 @@
 # Fluorescence Image Analyzer
-
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 A lightweight image analysis tool for fluorescence microscopy data, built as a side project for in-house workflow.
 
 ## Features
@@ -10,8 +10,6 @@ A lightweight image analysis tool for fluorescence microscopy data, built as a s
 - Statistical tests (Kruskal-Wallis, Dunn's)  
 - Visual overlays, trend plots, CSV export  
 - Streamlit-powered interactive UI
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 <p align="center">
   <a href="https://indralux.streamlit.app/">Live App</a> •
