@@ -195,7 +195,7 @@ if mode == "Single Image Analysis":
                 result_df.to_csv(csv_path, index=False)
                 st.download_button("Download Stats CSV", open(csv_path, "rb"), "kruskal_results.csv")
         
-        final_csv = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
-        df.to_csv(final_csv, index=False)
-        st.download_button("📂 Download Metrics", open(final_csv, "rb"), "indralux_metrics.csv")
+            final_csv = os.path.join(tempfile.gettempdir(), "metrics_output.csv")
+            df.to_csv(final_csv, index=False)
+            st.download_button("📂 Download Metrics", open(final_csv, "rb"), "indralux_metrics.csv")
 
