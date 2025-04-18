@@ -122,7 +122,7 @@ if st.session_state.batch_results:
 
 # ──────────────── SINGLE IMAGE MODE ────────────────
 if mode == "Single Image Analysis":
-    st.markdown("## 📸 Upload Single Microscopy Image")
+    st.sidebar.file_uploader("Upload Single Microscopy Image")
     uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key="single_upload")
 
     if uploaded_file:
